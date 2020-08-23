@@ -127,6 +127,10 @@ SOURCE=.\ess1868f_Animated.bmp
 # End Source File
 # Begin Source File
 
+SOURCE=.\icon1.ico
+# End Source File
+# Begin Source File
+
 SOURCE=.\Script3.rc
 # End Source File
 # Begin Source File

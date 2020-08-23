@@ -44,13 +44,13 @@ char* pFileNames[MAX_SPRITES] = {
 
 class Sprite {
 public:
-	LPDIRECTDRAWSURFACE pPicFrame;
-	int x;
-	int y;
-	int x1;
-	int y1;
-	int w;
-	int h;
+	LPDIRECTDRAWSURFACE pPicFrame; // Поверхность DirectDraw
+	int x; // Начальные координаты
+	int y; //
+	int x1; // Скорость по оси X
+	int y1; // Скорость по оси Y
+	int w; // Ширина полной картинки, не кадра
+	int h; // Высота полной картинки
 
 	Sprite() {
 		x = rand()%MAX_WIDTH - FRAME_WIDTH; // Начальное положение на экране
