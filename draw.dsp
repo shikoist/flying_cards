@@ -131,15 +131,21 @@ SOURCE=.\icon1.ico
 # End Source File
 # Begin Source File
 
-SOURCE=.\Script3.rc
+SOURCE=.\script.rc
+
+!IF  "$(CFG)" == "draw - Win32 Release"
+
+# ADD BASE RSC /l 0x419
+# ADD RSC /l 0x419 /i "bitmaps"
+
+!ELSEIF  "$(CFG)" == "draw - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=".\TVGA-9000C_2_coll.bmp"
-# End Source File
-# Begin Source File
-
-SOURCE=.\Windows.ico
 # End Source File
 # End Group
 # End Target
