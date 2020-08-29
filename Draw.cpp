@@ -11,12 +11,13 @@
 
 #include "draw.h"
 #include "main.h"
+#include "resource.h"
 
 //Максимальная скорость
 #define MAX_SPEED 2
 #define MIN_SPEED 1
 
-#define MAX_SPRITES 2
+#define MAX_SPRITES 3
 
 static HWND hMainWnd;
 
@@ -29,7 +30,8 @@ LPDIRECTDRAWPALETTE pDDPal;
 //char* pFileName = "ess1868f.bmp";
 char* pFileNames[MAX_SPRITES] = {
 	"ess1868f_Animated.bmp",
-	"TVGA-9000C_2_coll.bmp"
+	"TVGA-9000C_2_coll.bmp",
+	"3dfx_voodoo.bmp"
 };
 
 //Координаты
@@ -103,6 +105,20 @@ void ErrorHandle(HWND hwnd, LPCTSTR szError)
 	MessageBox(hwnd, szErrorMessage, AppName, MB_OK);
 	//Уничтожим окно
 	DestroyWindow(hwnd);
+}
+
+void ShowDebug(HWND hwnd, LPCTSTR szError)
+{
+	//Переменная, которая будет содержать строку с текстом ошибки
+	char szErrorMessage[255];
+	//Перед тем как вывести сообщение,
+	//корректно завершим работу DirectDraw
+	//Скроем основное окно
+	ShowWindow(hwnd, SW_HIDE);
+	//Выведем сообщение об ошибке
+	wsprintf(szErrorMessage, "%s", szError);
+	MessageBox(hwnd, szErrorMessage, AppName, MB_OK);
+	
 }
 //---------------------------------------------------------
 //Отчистка всех интерфейсов, связанных с DirectDraw
@@ -301,7 +317,7 @@ LPDIRECTDRAWPALETTE CreateDirectDrawPalette(LPDIRECTDRAW pDD)
 
 	//Открытие графического файла, содержащего палитру
 	HANDLE hFile=CreateFile(
-		pFileNames[0], GENERIC_READ,
+		"C:\\Мои документы\\Flying_Cards_dx5_v3\\Debug\\bitmaps\\3dfx_voodoo.bmp", GENERIC_READ,
 		FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
  	if (hFile==INVALID_HANDLE_VALUE)
 	{
@@ -338,6 +354,54 @@ LPDIRECTDRAWPALETTE CreateDirectDrawPalette(LPDIRECTDRAW pDD)
 
 	return (pDirectDrawPal);
 }
+
+//---------------------------------------------------------
+//Поиск последнего вхождения символов в строку
+int lastpos(char* text, char symbol)
+{
+	for (int i = strlen(text) - 1; i >= 0; i--)
+	{
+		if (text[i] == symbol)
+		{
+			return i;
+		}
+	}
+	return -1;
+}
+//---------------------------------------------------------
+//Копирование строки только до определённой длины
+char *substring(char *str, int index, int length)
+{
+	char *result = new char[255];
+	result[0] = '\0';
+	// Чтобы возвращалсь пустая строка
+	// а не набор случайных символов
+
+	if (length < 0)
+	{
+		return result;
+	}
+
+	if (index < 0)
+	{
+		return result;
+	}
+
+	if (index + length > (int)strlen(str))
+	{
+		return result;
+	}
+	
+	int j = 0;
+	for (int i = index; i < index + length; i++)
+	{
+		result[j] = str[i];
+		j++;
+	}
+	result[j] = '\0';
+
+	return result;
+}
 //---------------------------------------------------------
 //Подготовка поверхностей к выводу
 BOOL PrepareSurfaces()
@@ -355,8 +419,30 @@ BOOL PrepareSurfaces()
 	//	return (FALSE);
 	for (int i = 0; i < MAX_SPRITES; i++)
 	{
-		if (!LoadBMP(spriteCollection.sprites[i].pPicFrame, pFileNames[i]))
+		char fullpath[MAX_PATH];
+		
+		// Получить путь к исполняему файлу
+		GetModuleFileName(NULL, fullpath, MAX_PATH);
+
+		// Вычислить позицию последнего "\"
+		int f = lastpos(fullpath, '\\');
+
+		// Обрезать путь до текущего каталога
+		char* fp = new char[255];
+		fp = substring(fullpath, 0, f);
+		
+		// Прибавить к пути папку Bitmaps
+		strcat(fp, "\\bitmaps\\");
+
+		// Прибавить к пути название картинки
+		strcat(fp, pFileNames[i]);
+
+		//ShowDebug(hMainWnd, fp);
+		if (!LoadBMP(spriteCollection.sprites[i].pPicFrame, fp))
+		{
+			ErrorHandle(hMainWnd, fp);
 			return (FALSE);
+		}
 	}
 	return (TRUE);
 }
@@ -380,7 +466,10 @@ BOOL LoadBMP(LPDIRECTDRAWSURFACE pSurface, char* filename)
 	HANDLE hFile=CreateFile(filename, GENERIC_READ,
 			FILE_SHARE_READ, NULL,OPEN_EXISTING, 0, NULL);
 	if (hFile==INVALID_HANDLE_VALUE)
+	{
+
 		return (FALSE);
+	}
 
 	//Получение размера файла и размера данных
 	dwFileLength=GetFileSize (hFile, NULL) ;
@@ -407,6 +496,44 @@ BOOL LoadBMP(LPDIRECTDRAWSURFACE pSurface, char* filename)
 			0, 0, 64, 64,
 			0, 0, 64, 64,
 			pPixels, pBmpInfo, 0, SRCCOPY);
+		pSurface->ReleaseDC(hdc);
+	}
+	//Освобождение памяти
+	free(pBmp);
+
+	return (TRUE);
+}
+//---------------------------------------------------------
+//Загрузка изображения из BMP-файла
+//
+BOOL LoadBMPFromResource(LPDIRECTDRAWSURFACE pSurface, int resource)
+{
+	//Объявление переменных, необходимых для чтения данных
+	BYTE* pBmp;
+	DWORD dwBmpSize;
+
+	BITMAPINFO* pBmpInfo;
+	HDC hdc;
+	
+	HBITMAP Bmp=LoadBitmap(NULL, MAKEINTRESOURCE(resource));
+
+	pBmpInfo=(BITMAPINFO*)pBmp;
+
+	//Получение заголовка контекста устройства внеэкранной поверхности
+	if ((pSurface->GetDC(&hdc)) == DD_OK)
+	{
+	//Копирование графических данных из памяти
+	//на внеэкранную поверхность средствами GDI
+		//StretchDIBits(hdc , 0, 0, FRAME_WIDTH, FRAME_HEIGHT, 0, 0, FRAME_WIDTH, FRAME_HEIGHT, pPixels, pBmpInfo, 0, SRCCOPY);
+		StretchDIBits(
+			hdc,
+			0, 0, 64, 64,
+			0, 0, 64, 64,
+			pBmp,
+			pBmpInfo,
+			0,
+			SRCCOPY
+		);
 		pSurface->ReleaseDC(hdc);
 	}
 	//Освобождение памяти

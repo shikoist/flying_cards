@@ -103,7 +103,7 @@ SOURCE=.\MAIN.CPP
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
 # Begin Source File
 
-SOURCE=.\DRAW.H
+SOURCE=.\draw.h
 # End Source File
 # Begin Source File
 
@@ -119,18 +119,6 @@ SOURCE=.\resource.h
 # PROP Default_Filter "ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
 # Begin Source File
 
-SOURCE=.\3dfx_voodoo.bmp
-# End Source File
-# Begin Source File
-
-SOURCE=.\ess1868f_Animated.bmp
-# End Source File
-# Begin Source File
-
-SOURCE=.\icon1.ico
-# End Source File
-# Begin Source File
-
 SOURCE=.\script.rc
 
 !IF  "$(CFG)" == "draw - Win32 Release"
@@ -142,10 +130,6 @@ SOURCE=.\script.rc
 
 !ENDIF 
 
-# End Source File
-# Begin Source File
-
-SOURCE=".\TVGA-9000C_2_coll.bmp"
 # End Source File
 # End Group
 # End Target

@@ -26,9 +26,9 @@ LANGUAGE LANG_RUSSIAN, SUBLANG_DEFAULT
 // Bitmap
 //
 
-IDB_BITMAP1             BITMAP  DISCARDABLE     "3dfx_voodoo.bmp"
-IDB_BITMAP2             BITMAP  DISCARDABLE     "ess1868f_Animated.bmp"
-IDB_BITMAP3             BITMAP  DISCARDABLE     "TVGA-9000C_2_coll.bmp"
+IDB_BITMAP1             BITMAP  DISCARDABLE     "bitmaps\\3dfx_voodoo.bmp"
+IDB_BITMAP2             BITMAP  DISCARDABLE     "bitmaps\\ess1868f_Animated.bmp"
+IDB_BITMAP3             BITMAP  DISCARDABLE     "bitmaps\\TVGA-9000C_2_coll.bmp"
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
