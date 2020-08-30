@@ -15,3 +15,4 @@ BOOL CreateSurfaces();
 BOOL PrepareSurfaces();
 BOOL ClearSurface(LPDIRECTDRAWSURFACE pSurface);
 BOOL LoadBMP(LPDIRECTDRAWSURFACE pSurface, char* filename);
+BOOL LoadBMPFromResource(LPDIRECTDRAWSURFACE pSurface, int resource);

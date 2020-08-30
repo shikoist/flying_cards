@@ -119,6 +119,18 @@ SOURCE=.\resource.h
 # PROP Default_Filter "ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
 # Begin Source File
 
+SOURCE=.\bitmaps\3dfx_voodoo.bmp
+# End Source File
+# Begin Source File
+
+SOURCE=.\bitmaps\ess1868f_animated.bmp
+# End Source File
+# Begin Source File
+
+SOURCE=.\icon1.ico
+# End Source File
+# Begin Source File
+
 SOURCE=.\script.rc
 
 !IF  "$(CFG)" == "draw - Win32 Release"
@@ -131,6 +143,14 @@ SOURCE=.\script.rc
 !ENDIF 
 
 # End Source File
+# Begin Source File
+
+SOURCE=".\bitmaps\TVGA-9000C_2_coll.bmp"
+# End Source File
 # End Group
+# Begin Source File
+
+SOURCE=.\bitmap.pal
+# End Source File
 # End Target
 # End Project

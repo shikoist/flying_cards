@@ -17,6 +17,7 @@
 #define MAX_SPEED 2
 #define MIN_SPEED 1
 
+// Максимальнок количество спрайтов
 #define MAX_SPRITES 3
 
 static HWND hMainWnd;
@@ -28,7 +29,7 @@ LPDIRECTDRAWSURFACE pBackBuffer;
 LPDIRECTDRAWPALETTE pDDPal;
 
 //char* pFileName = "ess1868f.bmp";
-char* pFileNames[MAX_SPRITES] = {
+char* pFileNames[] = {
 	"ess1868f_Animated.bmp",
 	"TVGA-9000C_2_coll.bmp",
 	"3dfx_voodoo.bmp"
@@ -317,7 +318,7 @@ LPDIRECTDRAWPALETTE CreateDirectDrawPalette(LPDIRECTDRAW pDD)
 
 	//Открытие графического файла, содержащего палитру
 	HANDLE hFile=CreateFile(
-		"C:\\Мои документы\\Flying_Cards_dx5_v3\\Debug\\bitmaps\\3dfx_voodoo.bmp", GENERIC_READ,
+		"C:\\Мои документы\\Flying_Cards_dx5_v3\\bitmaps\\ess1868f_animated.bmp", GENERIC_READ,
 		FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
  	if (hFile==INVALID_HANDLE_VALUE)
 	{
@@ -419,30 +420,38 @@ BOOL PrepareSurfaces()
 	//	return (FALSE);
 	for (int i = 0; i < MAX_SPRITES; i++)
 	{
-		char fullpath[MAX_PATH];
+		//char fullpath[MAX_PATH];
 		
 		// Получить путь к исполняему файлу
-		GetModuleFileName(NULL, fullpath, MAX_PATH);
+		//GetModuleFileName(NULL, fullpath, MAX_PATH);
 
 		// Вычислить позицию последнего "\"
-		int f = lastpos(fullpath, '\\');
+		//int f = lastpos(fullpath, '\\');
 
 		// Обрезать путь до текущего каталога
-		char* fp = new char[255];
-		fp = substring(fullpath, 0, f);
+		//char* fp = new char[255];
+		//fp = substring(fullpath, 0, f);
 		
 		// Прибавить к пути папку Bitmaps
-		strcat(fp, "\\bitmaps\\");
+		//strcat(fp, "\\bitmaps\\");
 
 		// Прибавить к пути название картинки
-		strcat(fp, pFileNames[i]);
+		//strcat(fp, pFileNames[i]);
 
 		//ShowDebug(hMainWnd, fp);
-		if (!LoadBMP(spriteCollection.sprites[i].pPicFrame, fp))
+		//if (!LoadBMP(spriteCollection.sprites[i].pPicFrame, fp))
+		//{
+		//	ErrorHandle(hMainWnd, fp);
+		//	return (FALSE);
+		//}
+		if (!LoadBMPFromResource(
+					spriteCollection.sprites[i].pPicFrame,
+					101 + i))
 		{
-			ErrorHandle(hMainWnd, fp);
+			ErrorHandle(hMainWnd, "Error loading from resource!");
 			return (FALSE);
 		}
+
 	}
 	return (TRUE);
 }
@@ -504,40 +513,43 @@ BOOL LoadBMP(LPDIRECTDRAWSURFACE pSurface, char* filename)
 	return (TRUE);
 }
 //---------------------------------------------------------
-//Загрузка изображения из BMP-файла
+//Загрузка изображения из ресурсов приложения
 //
 BOOL LoadBMPFromResource(LPDIRECTDRAWSURFACE pSurface, int resource)
 {
-	//Объявление переменных, необходимых для чтения данных
-	BYTE* pBmp;
-	DWORD dwBmpSize;
+	// Грузим битмап
+	HBITMAP hBmp=LoadBitmap(NULL, MAKEINTRESOURCE(resource));
 
-	BITMAPINFO* pBmpInfo;
 	HDC hdc;
-	
-	HBITMAP Bmp=LoadBitmap(NULL, MAKEINTRESOURCE(resource));
 
-	pBmpInfo=(BITMAPINFO*)pBmp;
+	//Объявление переменных, необходимых для чтения данных
+	BITMAPINFO bmi;
+	
+	// Пишем в заголовок структуры её же размер
+	bmi.bmiHeader.biSize=sizeof(bmi.bmiHeader);
+	
+	// У нас 8-битное изображение
+	bmi.bmiHeader.biBitCount = 8;
+	
+	bmi.bmiHeader.biHeight = 64;
+	bmi.bmiHeader.biWidth = 64;
+
+	// И 256 цветов
+	//bmi.bmiColors = 256;
+
+	bmi.bmiHeader.biClrUsed = 256;
 
 	//Получение заголовка контекста устройства внеэкранной поверхности
 	if ((pSurface->GetDC(&hdc)) == DD_OK)
 	{
-	//Копирование графических данных из памяти
-	//на внеэкранную поверхность средствами GDI
-		//StretchDIBits(hdc , 0, 0, FRAME_WIDTH, FRAME_HEIGHT, 0, 0, FRAME_WIDTH, FRAME_HEIGHT, pPixels, pBmpInfo, 0, SRCCOPY);
-		StretchDIBits(
-			hdc,
-			0, 0, 64, 64,
-			0, 0, 64, 64,
-			pBmp,
-			pBmpInfo,
-			0,
-			SRCCOPY
-		);
+		// Здесь нужно прочитать биты из HBITMAP и
+		// переписать в поверхность
+		int ret=GetDIBits(hdc, hBmp, 0, 64, NULL, &bmi, DIB_PAL_COLORS);
 		pSurface->ReleaseDC(hdc);
 	}
+	
 	//Освобождение памяти
-	free(pBmp);
+	free(hBmp);
 
 	return (TRUE);
 }
@@ -569,8 +581,11 @@ void PrepareFrame()
 				//Восстановление внеэкранных поверхностей
 				//и заполнение их данными из файлов
 				spriteCollection.sprites[i].pPicFrame->Restore();
-				LoadBMP(spriteCollection.sprites[i].pPicFrame,
-					pFileNames[i]);
+				//LoadBMP(spriteCollection.sprites[i].pPicFrame,
+				//	pFileNames[i]);
+				LoadBMPFromResource(
+					spriteCollection.sprites[i].pPicFrame,
+					101 + i);
 			}
 		}
 	}
@@ -771,6 +786,7 @@ void DrawFrame()
 	//Переключение поверхностей
 	pPrimarySurface->Flip(NULL, DDFLIP_WAIT);
 }
+
 void NextTick() {
 	for (int i = 0; i < MAX_SPRITES; i++) {
 		spriteCollection.sprites[i].currentFrame++;
