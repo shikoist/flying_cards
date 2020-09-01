@@ -1,6 +1,6 @@
 //------------------------------------------------------
-//  Файл:  DRAW.CPP
-//  Описание: Демонстрирует основы DirectDraw
+//  File:  DRAW.CPP
+//  Description: Demonstration basics of DirectDraw
 //------------------------------------------------------
 #define WIN32_LEAN_AND_MEAN
 
@@ -13,63 +13,57 @@
 #include "main.h"
 #include "resource.h"
 
-//Максимальная скорость
+// Min and max speed
 #define MAX_SPEED 2
 #define MIN_SPEED 1
 
-// Максимальнок количество спрайтов
+// Max number of sprites
 #define MAX_SPRITES 3
 
 static HWND hMainWnd;
 
 LPDIRECTDRAW pDD;
 LPDIRECTDRAWSURFACE pPrimarySurface;
-//LPDIRECTDRAWSURFACE pPicFrame;
 LPDIRECTDRAWSURFACE pBackBuffer;
 LPDIRECTDRAWPALETTE pDDPal;
 
-//char* pFileName = "ess1868f.bmp";
 char* pFileNames[] = {
 	"ess1868f_Animated.bmp",
 	"TVGA-9000C_2_coll.bmp",
 	"3dfx_voodoo.bmp"
 };
 
-//Координаты
-//int x = 100;
-//int y = 100;
-
-//Приращение
-//int x1 = - 5;
-//int y1 = 1;
-
-
-
+// Class for sprite
 class Sprite {
 public:
 	LPDIRECTDRAWSURFACE pPicFrame; // Поверхность DirectDraw
-	int x; // Начальные координаты
+	int x; // Start coordinates
 	int y; //
-	int x1; // Скорость по оси X
-	int y1; // Скорость по оси Y
-	int w; // Ширина полной картинки, не кадра
-	int h; // Высота полной картинки
+	int x1; // Speed at axe X
+	int y1; // Speed at axe Y
+	int w; // Width of full picture, not a frame
+	int h; // Height of full picture
 
 	Sprite() {
-		x = rand()%MAX_WIDTH - FRAME_WIDTH; // Начальное положение на экране
+		// Start position on a screen
+		x = rand()%MAX_WIDTH - FRAME_WIDTH;
 		y = rand()%MAX_HEIGHT - FRAME_HEIGHT;
-		x1 = 1; // Начальные скорости
+		
+		// Start speeds
+		x1 = 1;
 		y1 = 1;
-		w = 64; // Размер картинки по щирине
-		h = 64; // Размер картинки по высоте
+
+		// Size of a picture
+		w = 64;
+		h = 64;
 	}
 };
 
 class AnimatedSprite: public Sprite {
 public:
-	int framesHorizontal; // Кадров по горизонтали
-	int framesVertical; // Кадров по вертикали
-	int currentFrame; // Текущий кадр
+	int framesHorizontal;
+	int framesVertical;
+	int currentFrame;
 	int maxFrame;
 
 	AnimatedSprite() {
@@ -77,6 +71,7 @@ public:
 		framesVertical = 4;
 		currentFrame = 0;
 		maxFrame = 7;
+		// 8 frames
 	}
 };
 
@@ -87,64 +82,37 @@ public:
 
 SpriteCollection spriteCollection;
 
-//spriteCollection.sprites[0].x = 50;
-
-//---------------------------------------------------------
-//Функция, вызываемая в случае ошибки
-//
 void ErrorHandle(HWND hwnd, LPCTSTR szError)
 {
-	//Переменная, которая будет содержать строку с текстом ошибки
 	char szErrorMessage[255];
-	//Перед тем как вывести сообщение,
-	//корректно завершим работу DirectDraw
+	
+	// Before message should correct to quit DirectDraw
 	RemoveDirectDraw();
-	//Скроем основное окно
+	
+	// Hide main window
 	ShowWindow(hwnd, SW_HIDE);
-	//Выведем сообщение об ошибке
+
+	// Show error message
 	wsprintf(szErrorMessage, "Программа прервана\nОшибка в %s", szError);
 	MessageBox(hwnd, szErrorMessage, AppName, MB_OK);
-	//Уничтожим окно
+	
 	DestroyWindow(hwnd);
 }
 
-void ShowDebug(HWND hwnd, LPCTSTR szError)
-{
-	//Переменная, которая будет содержать строку с текстом ошибки
-	char szErrorMessage[255];
-	//Перед тем как вывести сообщение,
-	//корректно завершим работу DirectDraw
-	//Скроем основное окно
-	ShowWindow(hwnd, SW_HIDE);
-	//Выведем сообщение об ошибке
-	wsprintf(szErrorMessage, "%s", szError);
-	MessageBox(hwnd, szErrorMessage, AppName, MB_OK);
-	
-}
-//---------------------------------------------------------
-//Отчистка всех интерфейсов, связанных с DirectDraw
-//
 void RemoveDirectDraw()
 {
-	//Проверяем, существует ли интерфейс IDirectDraw7
+	// Check for existing IDirectDraw interface
 	if (pDD != NULL)
 	{
-		//Проверяем, существует ли интерфейс первичной поверхности
+		// Check primary surface interface
 		if (pPrimarySurface!=NULL)
 		{
-			//Уничтожаем интерфейс первичной поверхности
+			// Releasing of primary surface
 			pPrimarySurface->Release();
 			pPrimarySurface = NULL;
 		}
-		//Проверка на существование внеэкранных поверхностей
-		//if (pPicFrame!=NULL)
-		//{
-			//Уничтожение внеэкранных поверхностей
-		//	pPicFrame->Release();
-		//	pPicFrame=NULL;
-		//}
 		
-		// Проверка спрайтов
+		// Checking sprites
 		for (int i = 0; i < MAX_SPRITES; i++)
 		{
 			if (spriteCollection.sprites[i].pPicFrame != NULL)
@@ -154,32 +122,28 @@ void RemoveDirectDraw()
 			}
 		}
 
-		//Проверка на существование интерфейса палитры
+		// Checking palette interface
 		if(pDDPal!=NULL)
 		{
-			//Уничтожение интерфейса палитры
+			// Destroy palette interface
 			pDDPal->Release();
 			pDDPal=NULL;
 		}
-		//Уничтожение интерфейса DirectDraw
+		
+		// Destroy DirectDraw interface
 		pDD->Release();
 		pDD=NULL;
 	}
 }
 //---------------------------------------------------------
-//Инициализация DirectDraw
+// Initialization DirectDraw
 //
 BOOL InitDirectDraw (HWND hwnd)
 {
-	
-	
-
-	//Обнуляем все интерфейсы
+	// NULL all interfaces
 	pPrimarySurface=NULL;
 	pBackBuffer=NULL;
 	pDDPal=NULL;
-
-	//pPicFrame=NULL;
 
 	for (int i = 0; i < MAX_SPRITES; i++) {
 		spriteCollection.sprites[i].pPicFrame = NULL; 
@@ -187,11 +151,10 @@ BOOL InitDirectDraw (HWND hwnd)
 
 	hMainWnd=hwnd;
 
-	//Переменная для возвращаемых кодов
+	// Variable to return error codes
 	HRESULT hRet;
 
-	//Создание интерфейса IDirectDraw7
-	//hRet=DirectDrawCreateEx(NULL, (VOID**)&pDD, IID_IDirectDraw7, NULL);
+	// Creating IDirectDraw interface
 	hRet=DirectDrawCreate(NULL, &pDD, NULL);
 	if (hRet!=DD_OK)
 	{
@@ -199,7 +162,7 @@ BOOL InitDirectDraw (HWND hwnd)
 		return (FALSE);
 	}
 
-	//Установка эксклюзивного режима кооперации
+	// Set exclusive fullscreen mode
 	hRet=pDD->SetCooperativeLevel(hMainWnd, DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN);
 	if (hRet!=DD_OK)
 	{
@@ -207,8 +170,7 @@ BOOL InitDirectDraw (HWND hwnd)
 		return (FALSE);
 	}
 
-	//Установка необходимого видеорежима
-	//hRet=pDD->SetDisplayMode(MAX_WIDTH, MAX_HEIGHT, COLOR_DEPTH, NULL, NULL);
+	// Set display mode
 	hRet=pDD->SetDisplayMode(MAX_WIDTH, MAX_HEIGHT, COLOR_DEPTH);
 	if (hRet!=DD_OK)
 	{
@@ -216,14 +178,14 @@ BOOL InitDirectDraw (HWND hwnd)
 		return (FALSE);
 	}
 
-	//Вызов функции создания поверхностей
+	// Calling function of creating surfaces
 	if (!CreateSurfaces())
 	{
 		ErrorHandle(hMainWnd, "CreateSurfaces");
 		return (FALSE);
 	}
 
-	//Вызов функции подготовки поверхностей к работе
+	// Prepare surfaces
 	if (!PrepareSurfaces())
 	{
 		ErrorHandle(hMainWnd, "PrepareSurfaces");
@@ -233,49 +195,39 @@ BOOL InitDirectDraw (HWND hwnd)
 	return (TRUE);
 }
 //---------------------------------------------------------
-//Создание поверхностей
+// Creating surfaces
 //
 BOOL CreateSurfaces()
 {
-	//Объявление необходимых для многих функций DirectDraw
-	//структур и переменных
+	// Declaration of necessary structures and variables
+	// for many  DirectDraw functions
+	
 	DDSURFACEDESC ddSurfaceDesc;
 	DDSCAPS ddsCaps;
 	HRESULT hRet;
 
-	//Отчистка структуры от "мусора" и установка поля ее размера
+	// Clearing structure from garbage and setting size
 	ZeroMemory(&ddSurfaceDesc, sizeof(ddSurfaceDesc));
 	ddSurfaceDesc.dwSize=sizeof(ddSurfaceDesc);
 
-	//Установка необходимых полей структуры
+	// Setting necessary fields of structure
 	ddSurfaceDesc.dwFlags=DDSD_CAPS | DDSD_BACKBUFFERCOUNT;
 	ddSurfaceDesc.ddsCaps.dwCaps=DDSCAPS_PRIMARYSURFACE | DDSCAPS_FLIP | DDSCAPS_COMPLEX;
 	ddSurfaceDesc.dwBackBufferCount=1;
 
-	//Создание поверхности
+	// Creating of surface
 	hRet=pDD->CreateSurface(&ddSurfaceDesc,	&pPrimarySurface, NULL);
 	if (hRet!=DD_OK)
 		return (FALSE);
 
-	//Создание вторичного буфера
+	// Creating secondary buffer
 	ZeroMemory(&ddsCaps, sizeof(ddsCaps));
 	ddsCaps.dwCaps=DDSCAPS_BACKBUFFER;
 	hRet=pPrimarySurface->GetAttachedSurface(&ddsCaps, &pBackBuffer);
 	if(hRet!=DD_OK)
 		return (FALSE);
 
-	//Создание внеэкранных поверхностей
-	//ZeroMemory(&ddSurfaceDesc, sizeof(ddSurfaceDesc));
-	//ddSurfaceDesc.dwSize=sizeof(ddSurfaceDesc);
-	//ddSurfaceDesc.dwFlags=DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH;
-	//ddSurfaceDesc.ddsCaps.dwCaps=DDSCAPS_OFFSCREENPLAIN;
-	//ddSurfaceDesc.dwHeight=64;
-	//ddSurfaceDesc.dwWidth=64;
-	//hRet=pDD->CreateSurface(&ddSurfaceDesc, &pPicFrame, NULL);
-	//if(hRet!=DD_OK)
-	//	return (FALSE);
-	
-	// То же самое для спрайтов
+	// Creating offscreen surfaces for sprites
 	for (int i = 0; i < MAX_SPRITES; i++)
 	{
 		ZeroMemory(&ddSurfaceDesc, sizeof(ddSurfaceDesc));
@@ -289,13 +241,12 @@ BOOL CreateSurfaces()
 			return (FALSE);
 	}
 
-	//Установка параметров структуры с "цветовыми ключами"
+	// Setting structure with color keys
 	DDCOLORKEY ddColorKey;
 	ddColorKey.dwColorSpaceLowValue=TRASPARENT_COLOR;
 	ddColorKey.dwColorSpaceHighValue=TRASPARENT_COLOR;
 
-	//Установка "цветовых ключей" для всех внеэкранных поверхностей
-	//pPicFrame->SetColorKey(DDCKEY_SRCBLT, &ddColorKey);
+	// Setting color keys for all surfaces
 	for (i = 0; i < MAX_SPRITES; i++)
 	{
 		spriteCollection.sprites[i].pPicFrame->SetColorKey(DDCKEY_SRCBLT, 
@@ -304,11 +255,12 @@ BOOL CreateSurfaces()
 	return (TRUE);
 }
 //---------------------------------------------------------
-//Создание палитры
+// Creating of palette
 //
 LPDIRECTDRAWPALETTE CreateDirectDrawPalette(LPDIRECTDRAW pDD)
 {
-	//Объявление интерфейсов и структур для работы с палитрой
+	// Declaration of interfaces and structures 
+	// for working with palette
 	LPDIRECTDRAWPALETTE pDirectDrawPal;
 	PALETTEENTRY palEntries[256];
 	HRESULT hRet;
@@ -316,7 +268,8 @@ LPDIRECTDRAWPALETTE CreateDirectDrawPalette(LPDIRECTDRAW pDD)
 	UINT uMemNeed=sizeof(RGBQUAD)*256;
 	DWORD nBytesRead;
 
-	//Открытие графического файла, содержащего палитру
+	// Opening graphics file containing palette
+	// TODO Change to resource file
 	HANDLE hFile=CreateFile(
 		"C:\\Мои документы\\Flying_Cards_dx5_v3\\bitmaps\\ess1868f_animated.bmp", GENERIC_READ,
 		FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
@@ -326,17 +279,20 @@ LPDIRECTDRAWPALETTE CreateDirectDrawPalette(LPDIRECTDRAW pDD)
 		return (pDirectDrawPal);
 	}
 
-	//Выделение памяти под файловую палитру
+	// Allocation memory for color table
 	pColorTable= (LPRGBQUAD)malloc(uMemNeed);
-	//Установка указателя файла на начало палитры
+	
+	// Setting file pointer to a start palette
 	SetFilePointer(hFile, sizeof(BITMAPFILEHEADER)+sizeof(BITMAPINFOHEADER),
 		NULL, FILE_BEGIN);
-	//Чтение палитры из файла
+	
+	// Reading palette from file
 	ReadFile(hFile, (LPVOID)pColorTable, uMemNeed, &nBytesRead, NULL);
-	//Закрытие графического файла
+	
+	// Closing file
 	CloseHandle(hFile);
 
-	//Перевод палитры из RGBQUAD в RGBTRIPPLE
+	// Converting palette from RGBQUAD to RGBTRIPPLE
 	for (int x=0;x<256;++x)
 	{
 		palEntries[x].peRed=pColorTable[x].rgbRed;
@@ -344,20 +300,20 @@ LPDIRECTDRAWPALETTE CreateDirectDrawPalette(LPDIRECTDRAW pDD)
 		palEntries[x].peGreen=pColorTable[x].rgbGreen;
 	}
 
-	//Создание палитры DirectDraw
+	// Creating DirectDraw palette
 	hRet=pDD->CreatePalette(DDPCAPS_8BIT | DDPCAPS_ALLOW256,
 		palEntries, &pDirectDrawPal, NULL);
 	if (hRet!=DD_OK)
 		pDirectDrawPal=NULL;
 
-	//Освобождение памяти
+	// Freeing memory
 	free(pColorTable);
 
 	return (pDirectDrawPal);
 }
 
 //---------------------------------------------------------
-//Поиск последнего вхождения символов в строку
+// Search last index of a character in the array of char
 int lastpos(char* text, char symbol)
 {
 	for (int i = strlen(text) - 1; i >= 0; i--)
@@ -370,14 +326,13 @@ int lastpos(char* text, char symbol)
 	return -1;
 }
 //---------------------------------------------------------
-//Копирование строки только до определённой длины
+// Cut of string
 char *substring(char *str, int index, int length)
 {
 	char *result = new char[255];
 	result[0] = '\0';
-	// Чтобы возвращалсь пустая строка
-	// а не набор случайных символов
-
+	// For clear result
+	
 	if (length < 0)
 	{
 		return result;
@@ -404,20 +359,22 @@ char *substring(char *str, int index, int length)
 	return result;
 }
 //---------------------------------------------------------
-//Подготовка поверхностей к выводу
+// Preparing surfaces for displaying
 BOOL PrepareSurfaces()
 {
-	//Создание палитры DirectDraw
+	// Creating DirectDraw palette
 	pDDPal=CreateDirectDrawPalette(pDD);
 	if (pDDPal==NULL)
 		return (FALSE);
 
-	//Присваивание палитры первичной поверхности
+	// Assignment of a palette to primary surface
 	pPrimarySurface->SetPalette(pDDPal);
 
-	//Загрузка графических данных из файлов на внеэкранные поверхности
+	// Loading graphics data from the files to the offscreen surfaces
+	
 	//if (!LoadBMP(pPicFrame, pFileName))
 	//	return (FALSE);
+	
 	for (int i = 0; i < MAX_SPRITES; i++)
 	{
 		//char fullpath[MAX_PATH];
@@ -438,7 +395,6 @@ BOOL PrepareSurfaces()
 		// Прибавить к пути название картинки
 		//strcat(fp, pFileNames[i]);
 
-		//ShowDebug(hMainWnd, fp);
 		//if (!LoadBMP(spriteCollection.sprites[i].pPicFrame, fp))
 		//{
 		//	ErrorHandle(hMainWnd, fp);
@@ -624,52 +580,11 @@ void DrawFrame()
 {
 	RECT rPic;
 
-	//Подготовка поверхностей
+	// Prepare surfaces
 	PrepareFrame();
 	ClearSurface(pBackBuffer);
 
-	//Установка размеров копируемого блока данных
-	//SetRect(&rPic, 0, 0, FRAME_WIDTH, FRAME_HEIGHT);
-	
-	//x += x1;
-	//y += y1;
-	
-	//if (x > MAX_WIDTH - FRAME_WIDTH || x < 0)
-	//{
-		
-	//	int r = rand()%MAX_SPEED + MIN_SPEED;
-		
-		//if (x1 > 0) {
-		//	x1 = -r;
-		//}
-		//else {
-		//	x1 = r;
-		//}
-	//}
-	//if (x > MAX_WIDTH - FRAME_WIDTH)
-	//{
-		//x = MAX_WIDTH - FRAME_WIDTH;
-	//}
-	//if (x < 0)
-	//{
-		//x = 0;
-	//}
-
-	//if (y > MAX_HEIGHT - FRAME_HEIGHT || y < 0)	{
-		
-		//int r = rand()%MAX_SPEED + MIN_SPEED;
-		//if (y1 > 0)
-		//	y1 = -r;
-		//else
-		//	y1 = r;
-	//}
-	//if (y > MAX_HEIGHT - FRAME_HEIGHT)
-	//	y = MAX_HEIGHT - FRAME_HEIGHT;
-
-	//if (y < 0)
-	//	y = 0;
-
-	// А теперь то же самое для спрайтов
+	// Moving sprites
 	for (int i = 0; i < MAX_SPRITES; i++)
 	{
 		spriteCollection.sprites[i].x += spriteCollection.sprites[i].x1;
@@ -711,79 +626,27 @@ void DrawFrame()
 			spriteCollection.sprites[i].y = 0;
 	}
 
-	//Копирование графических данных с внеэкранной поверхности
-	//на вторичный буфер
-	//pBackBuffer->BltFast(
-	//	x,
-	//	y,
-	//	pPicFrame,
-	//	&rPic,
-	//	DDBLTFAST_SRCCOLORKEY | DDBLTFAST_WAIT);
-
-	for (i = 0; i < MAX_SPRITES; i++)
-	{
-		switch (spriteCollection.sprites[i].currentFrame)
-		{
-			case 0: {
-				SetRect(&rPic,
-					0, 0, 
-					FRAME_WIDTH, FRAME_HEIGHT);
-				break;
-			}
-			case 1: {
-				SetRect(&rPic,
-					FRAME_WIDTH, 0,
-					FRAME_WIDTH * 2, FRAME_HEIGHT);
-				break;
-			}
-			case 2: {
-				SetRect(&rPic,
-					0, FRAME_HEIGHT,
-					FRAME_WIDTH, FRAME_HEIGHT * 2);
-				break;
-			}
-			case 3: {
-				SetRect(&rPic,
-					FRAME_WIDTH, FRAME_HEIGHT,
-					FRAME_WIDTH * 2, FRAME_HEIGHT * 2);
-				break;
-			}
-			case 4: {
-				SetRect(&rPic,
-					0, FRAME_HEIGHT * 2,
-					FRAME_WIDTH, FRAME_HEIGHT * 3);
-				break;
-			}
-			case 5: {
-				SetRect(&rPic,
-					FRAME_WIDTH, FRAME_HEIGHT * 2, 
-					FRAME_WIDTH * 2, FRAME_HEIGHT * 3);
-				break;
-			}
-			case 6: {
-				SetRect(&rPic, 
-					0, FRAME_HEIGHT * 3,
-					FRAME_WIDTH, FRAME_HEIGHT * 4);
-				break;
-			}
-			case 7: {
-				SetRect(&rPic,
-					FRAME_WIDTH, FRAME_HEIGHT * 3,
-					FRAME_WIDTH * 2, FRAME_HEIGHT * 4);
-				break;
-			}
-		}
+	// Setting rectangles for copying data
+	int w = FRAME_WIDTH;
+	int h = FRAME_HEIGHT;
+	for (i = 0; i < MAX_SPRITES; i++) {
+		// f can be 0-7
+		int f = spriteCollection.sprites[i].currentFrame;
 		
-
+		// Select frame from picture
+		SetRect(&rPic, w*(f%2), h*(f/2), w*(f%2+1), h*(f/2+1));
+		
+		// Copying data from offscreen surfaces to secondary buffer
 		pBackBuffer->BltFast(
 			spriteCollection.sprites[i].x,
 			spriteCollection.sprites[i].y,
 			spriteCollection.sprites[i].pPicFrame,
 			&rPic,
 			DDBLTFAST_SRCCOLORKEY | DDBLTFAST_WAIT);
+		}
 	}
 
-	//Переключение поверхностей
+	// Switching surfaces
 	pPrimarySurface->Flip(NULL, DDFLIP_WAIT);
 }
 
