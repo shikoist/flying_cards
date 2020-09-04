@@ -70,7 +70,7 @@ IDI_ICON1               ICON    DISCARDABLE     "icon1.ico"
 // palette
 //
 
-IDR_PALETTE1            palette DISCARDABLE     "bitmap.pal"
+IDR_PALETTE1            RCDATA DISCARDABLE     "bitmap.pal"
 #endif    // Russian resources
 /////////////////////////////////////////////////////////////////////////////
 

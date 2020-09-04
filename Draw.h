@@ -3,8 +3,8 @@
 //  Описание:  Демонстрирует основы DirectDraw
 //------------------------------------------------------
 
-#define MAX_WIDTH 640
-#define MAX_HEIGHT 480
+#define MAX_WIDTH 800
+#define MAX_HEIGHT 600
 #define COLOR_DEPTH 8
 #define TRASPARENT_COLOR 0xE3
 
@@ -16,3 +16,4 @@ BOOL PrepareSurfaces();
 BOOL ClearSurface(LPDIRECTDRAWSURFACE pSurface);
 BOOL LoadBMP(LPDIRECTDRAWSURFACE pSurface, char* filename);
 BOOL LoadBMPFromResource(LPDIRECTDRAWSURFACE pSurface, int resource);
+void ErrorHandle(HWND hwnd, LPCTSTR szError);
