@@ -119,11 +119,11 @@ SOURCE=.\resource.h
 # PROP Default_Filter "ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
 # Begin Source File
 
-SOURCE=.\bitmaps\3dfx_voodoo.bmp
+SOURCE=.\3dfx_voodoo.bmp
 # End Source File
 # Begin Source File
 
-SOURCE=.\bitmaps\ess1868f_animated.bmp
+SOURCE=.\ess1868f_Animated.bmp
 # End Source File
 # Begin Source File
 
@@ -145,7 +145,7 @@ SOURCE=.\script.rc
 # End Source File
 # Begin Source File
 
-SOURCE=".\bitmaps\TVGA-9000C_2_coll.bmp"
+SOURCE=".\TVGA-9000C_2_coll.bmp"
 # End Source File
 # End Group
 # Begin Source File

@@ -141,9 +141,6 @@ void ErrorHandle(HWND hwnd, LPCTSTR szError)
 
 void RemoveDirectDraw()
 {
-	// Free memory
-	//free(pColorTable);
-
 	// Check for existing IDirectDraw interface
 	if (pDD != NULL)
 	{
@@ -281,20 +278,26 @@ BOOL CreateSurfaces()
 	for (int i = 0; i < MAX_SPRITES; i++)
 	{
 		ZeroMemory(&ddSurfaceDesc, sizeof(ddSurfaceDesc));
-		ddSurfaceDesc.dwSize=sizeof(ddSurfaceDesc);
-		ddSurfaceDesc.dwFlags=DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH;
-		ddSurfaceDesc.ddsCaps.dwCaps=DDSCAPS_OFFSCREENPLAIN;
-		ddSurfaceDesc.dwHeight=spriteCollection.sprites[i].h;
-		ddSurfaceDesc.dwWidth=spriteCollection.sprites[i].w;
-		hRet=pDD->CreateSurface(&ddSurfaceDesc, &spriteCollection.sprites[i].pPicFrame, NULL);
-		if(hRet!=DD_OK)
-			return (FALSE);
+		ddSurfaceDesc.dwSize = sizeof(ddSurfaceDesc);
+		ddSurfaceDesc.dwFlags = 
+			DDSD_CAPS | 
+			DDSD_HEIGHT | 
+			DDSD_WIDTH;
+		ddSurfaceDesc.ddsCaps.dwCaps = 
+			DDSCAPS_OFFSCREENPLAIN;
+		ddSurfaceDesc.dwHeight = spriteCollection.sprites[i].h;
+		ddSurfaceDesc.dwWidth = spriteCollection.sprites[i].w;
+		hRet=pDD->CreateSurface(
+			&ddSurfaceDesc,
+			&spriteCollection.sprites[i].pPicFrame,
+			NULL);
+		if (hRet != DD_OK) return (FALSE);
 	}
 	
 	// Setting structure with color keys
 	DDCOLORKEY ddColorKey;
-	ddColorKey.dwColorSpaceLowValue=TRASPARENT_COLOR;
-	ddColorKey.dwColorSpaceHighValue=TRASPARENT_COLOR;
+	ddColorKey.dwColorSpaceLowValue = TRASPARENT_COLOR;
+	ddColorKey.dwColorSpaceHighValue = TRASPARENT_COLOR;
 	
 	// Setting color keys for all surfaces
 	for (i = 0; i < MAX_SPRITES; i++)
@@ -305,11 +308,11 @@ BOOL CreateSurfaces()
 	return (TRUE);
 }
 //---------------------------------------------------------
-// Creating of a palette
+// Creating of the palette from the resource
 //
-LPDIRECTDRAWPALETTE CreateDirectDrawPalette(LPDIRECTDRAW pDD)
+LPDIRECTDRAWPALETTE CreateDirectDrawPaletteFromResource(LPDIRECTDRAW pDD)
 {
-	Log("CreatePalette"); Log("\n");
+	Log("CreatePaletteFormResource"); Log("\n");
 
 	// Declaration of interfaces and structures 
 	// for working with palette
@@ -318,18 +321,7 @@ LPDIRECTDRAWPALETTE CreateDirectDrawPalette(LPDIRECTDRAW pDD)
 	HRESULT hRet;
 	LPRGBQUAD pColorTable;
 	UINT uMemNeed = sizeof(RGBQUAD)*256;
-	//DWORD nBytesRead;
-	
-	// Opening graphics file containing palette
-	// TODO Change to resource file
-	//HANDLE hFile = CreateFile(
-	//	"C:\\Мои документы\\Flying_Cards_dx5_v3\\bitmaps\\ess1868f_animated.bmp", GENERIC_READ,
-	//	FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
-	//if (hFile == INVALID_HANDLE_VALUE)
-	//{
-	//	pDirectDrawPal = NULL;
-	//	return (pDirectDrawPal);
-	//}
+	int i = 0;
 
 	// Very hard to find how correctly to load binary resource!
 	// Example here
@@ -343,35 +335,111 @@ LPDIRECTDRAWPALETTE CreateDirectDrawPalette(LPDIRECTDRAW pDD)
 	pColorTable = (LPRGBQUAD) malloc (uMemNeed);
 	
 	// Copy palette data
+	// Offset 24 bytes because palette saved as a file
 	memcpy(pColorTable, paletteBytes + 24, uMemNeed);
 	
-	Log("pColorTable ");Log(sizeof(pColorTable));Log("\n");
+	// Logging
+	//Log("pColorTable ");Log(sizeof(pColorTable));Log("\n");
 	
-	Log("paletteBytes ");Log(sizeof(paletteBytes));Log("\n");
+	//Log("paletteBytes ");Log(sizeof(paletteBytes));Log("\n");
 	
-	Log("uMemNeed ");Log(uMemNeed);Log("\n");
+	//Log("uMemNeed ");Log(uMemNeed);Log("\n");
 
-	// Setting file pointer to a start palette
-	//SetFilePointer(
-	//	hFile,
-	//	sizeof (BITMAPFILEHEADER) + 
-	//	sizeof (BITMAPINFOHEADER),
-	//	NULL,
-	//	FILE_BEGIN
-	//);
-	
-	// Reading palette from file
-	//ReadFile(hFile, (LPVOID)pColorTable, uMemNeed, &nBytesRead, NULL);
-	
-	// Closing file
-	//CloseHandle(hFile);
+	for (i = 0; i < 256; i++)
+	{
+		Log(i);
+		Log(" pColorTable r ");Log(pColorTable[i].rgbRed);
+		Log(" g ");Log(pColorTable[i].rgbGreen);
+		Log(" b ");Log(pColorTable[i].rgbBlue);
+		Log("\n");
+	}
 	
 	// Converting palette from RGBQUAD to RGBTRIPPLE
-	for (int x = 0; x < 256; ++x)
+	for (i = 0; i < 256; i++)
 	{
-		palEntries[x].peRed = pColorTable[x].rgbRed;
-		palEntries[x].peBlue = pColorTable[x].rgbBlue;
-		palEntries[x].peGreen = pColorTable[x].rgbGreen;
+		palEntries[i].peRed = pColorTable[i].rgbRed;
+		palEntries[i].peGreen = pColorTable[i].rgbGreen;
+		palEntries[i].peBlue = pColorTable[i].rgbBlue;
+	}
+	
+	// Creating DirectDraw palette
+	hRet = pDD->CreatePalette(
+		DDPCAPS_8BIT |
+		DDPCAPS_ALLOW256,
+		palEntries,
+		&pDirectDrawPal,
+		NULL
+	);
+	if (hRet != DD_OK) pDirectDrawPal = NULL;
+	
+	// Free memory
+	free(pColorTable);
+	
+	return (pDirectDrawPal);
+}
+//---------------------------------------------------------
+// Creating of a palette from the BMP file
+//
+LPDIRECTDRAWPALETTE CreateDirectDrawPaletteFromFile(LPDIRECTDRAW pDD)
+{
+	Log("CreatePaletteFromFile"); Log("\n");
+
+	// Declaration of interfaces and structures 
+	// for working with palette
+	LPDIRECTDRAWPALETTE pDirectDrawPal;
+	PALETTEENTRY palEntries[256];
+	HRESULT hRet;
+	LPRGBQUAD pColorTable;
+	UINT uMemNeed = sizeof(RGBQUAD)*256;
+	int i = 0;
+	DWORD nBytesRead;
+	
+	// Opening graphics file containing palette
+	HANDLE hFile = CreateFile(
+		"C:\\Projects\\Flying_Cards_dx5_v3\\bitmaps\\ess1868f_animated.bmp",
+		GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+	if (hFile == INVALID_HANDLE_VALUE)
+	{
+		pDirectDrawPal = NULL;
+		return (pDirectDrawPal);
+	}
+
+	// Allocation memory for color table
+	pColorTable = (LPRGBQUAD) malloc (uMemNeed);
+	
+	// Setting file pointer to a start palette
+	SetFilePointer(
+		hFile,
+		sizeof (BITMAPFILEHEADER) + 
+		sizeof (BITMAPINFOHEADER),
+		NULL,
+		FILE_BEGIN
+	);
+	
+	// Reading palette from file
+	ReadFile(hFile, (LPVOID)pColorTable, uMemNeed, &nBytesRead, NULL);
+	
+	// Closing file
+	CloseHandle(hFile);
+	
+	// Logging
+	Log("pColorTable from BMP ");Log(sizeof(pColorTable));Log("\n");
+	Log("uMemNeed ");Log(uMemNeed);Log("\n");
+	for (i = 0; i < 256; i++)
+	{
+		Log(i);
+		Log(" pColorTable r ");Log(pColorTable[i].rgbRed);
+		Log(" g ");Log(pColorTable[i].rgbGreen);
+		Log(" b ");Log(pColorTable[i].rgbBlue);
+		Log("\n");
+	}
+
+	// Converting palette from RGBQUAD to RGBTRIPPLE
+	for (i = 0; i < 256; i++)
+	{
+		palEntries[i].peRed = pColorTable[i].rgbRed;
+		palEntries[i].peBlue = pColorTable[i].rgbBlue;
+		palEntries[i].peGreen = pColorTable[i].rgbGreen;
 	}
 	
 	// Creating DirectDraw palette
@@ -432,7 +500,8 @@ char *substring(char *str, int index, int length)
 BOOL PrepareSurfaces()
 {
 	// Creating DirectDraw palette
-	pDDPal = CreateDirectDrawPalette(pDD);
+	pDDPal = CreateDirectDrawPaletteFromResource(pDD);
+	//pDDPal = CreateDirectDrawPaletteFromFile(pDD);
 	if (pDDPal == NULL)
 		return (FALSE);
 	
@@ -464,14 +533,13 @@ BOOL PrepareSurfaces()
 		// Прибавить к пути название картинки
 		//strcat(fp, pFileNames[i]);
 		
-		//if (!LoadBMP(spriteCollection.sprites[i].pPicFrame, fp))
+		//if (!LoadBMP(spriteCollection.sprites[i].pPicFrame, pFileNames[i]))
 		//{
-		//	ErrorHandle(hMainWnd, fp);
+		//	ErrorHandle(hMainWnd, pFileNames[i]);
 		//	return (FALSE);
 		//}
-		if (!LoadBMPFromResource(
-			spriteCollection.sprites[i].pPicFrame,
-			101 + i))
+		
+		if (!LoadBMPFromResource(spriteCollection.sprites[i].pPicFrame,	101 + i))
 		{
 			ErrorHandle(hMainWnd, "Error loading from resource!");
 			return (FALSE);
@@ -508,11 +576,14 @@ BOOL LoadBMP(LPDIRECTDRAWSURFACE pSurface, char* filename)
 	
 	// Allocating memory
 	pBmp = (BYTE*) malloc(dwBmpSize);
+
+	// Set file pointer to end of bitmap header (graphics data)
 	SetFilePointer(hFile, sizeof(BITMAPFILEHEADER), NULL, FILE_BEGIN);
 	
 	// Read the file
 	ReadFile(hFile, (LPVOID)pBmp, dwBmpSize, &nBytesRead, NULL);
 	CloseHandle(hFile);
+	Log("BMP size "); Log(nBytesRead); Log("\n");
 	
 	pBmpInfo = (BITMAPINFO*)pBmp;
 	pPixels = pBmp + sizeof(BITMAPINFOHEADER) + sizeof(RGBQUAD)*256;
@@ -539,67 +610,69 @@ BOOL LoadBMP(LPDIRECTDRAWSURFACE pSurface, char* filename)
 BOOL LoadBMPFromResource(LPDIRECTDRAWSURFACE pSurface, int resource)
 {
 	HBITMAP hBmp = LoadBitmap(NULL, MAKEINTRESOURCE(resource));
-	
+	//Log("hBMP size"); Log(sizeof(hBmp)); Log("\n");
+
 	HDC hdc;
 	
 	// Necessary variables
+	//struct {
+	//	BITMAPINFOHEADER bmiHeader;
+	//	RGBQUAD bmiColor[256];
+	//} bmi;
+	//memset(&bmi, 0, sizeof(bmi));
+	
 	BITMAPINFO* bmi;
-	bmi = (LPBITMAPINFO) malloc(
-		sizeof(BITMAPINFO) + 
-		sizeof(BITMAPINFOHEADER) + 
-		256 * sizeof(RGBQUAD)
-	);
+	bmi = (LPBITMAPINFO) malloc(sizeof(BITMAPINFO) + sizeof(BITMAPINFOHEADER) + 256 * sizeof(RGBQUAD));
+	// Set size in header by size of header
+	// We have 8 bit image
+	bmi->bmiHeader.biSize = sizeof(bmi->bmiHeader);
+	bmi->bmiHeader.biWidth = 64;
+	bmi->bmiHeader.biHeight = 64;
+	bmi->bmiHeader.biPlanes = 1;
+	bmi->bmiHeader.biBitCount = 8;
+	bmi->bmiHeader.biCompression = BI_RGB;
+	// All first 6 fields should be initialized... Damn! So many hours wasted!
+	//bmi->bmiHeader.biSizeImage = 4096;
+	//bmi->bmiHeader.biClrUsed = 256;
+	//bmi->bmiHeader.biClrImportant = 0;
 
 	// Loading palette data from resource
-	LPRGBQUAD pColorTable;
-	UINT uMemNeed = 256 * sizeof(RGBQUAD);
-	HRSRC rc = NULL;
-	rc = FindResource(NULL, MAKEINTRESOURCE(IDR_PALETTE1), RT_RCDATA);
-	HGLOBAL hgl = LoadResource(NULL, rc);
-	BYTE *paletteBytes = (BYTE*)LockResource(hgl);
-	FreeResource(hgl);
+	//HRSRC rc = NULL;
+	//rc = FindResource(NULL, MAKEINTRESOURCE(IDR_PALETTE1), RT_RCDATA);
+	//HGLOBAL hgl = LoadResource(NULL, rc);
+	//BYTE *paletteBytes = (BYTE*)LockResource(hgl); // Dont forget, it contains +24 bytes of header
+	//FreeResource(hgl);
 	
 	// Allocation memory for color table
-	pColorTable = (LPRGBQUAD) malloc (uMemNeed);
+	//LPRGBQUAD pColorTable;
+	//pColorTable = (LPRGBQUAD) malloc (uMemNeed);
 	
 	// Copy palette data
-	memcpy(pColorTable, paletteBytes + 24, uMemNeed);
+	//memcpy(pColorTable, paletteBytes + 24, uMemNeed);
 
-	for (int i = 0; i < 256; i++)
-	{
-		bmi->bmiColors[i].rgbRed = pColorTable[i].rgbRed;
-		bmi->bmiColors[i].rgbGreen = pColorTable[i].rgbGreen;
-		bmi->bmiColors[i].rgbBlue = pColorTable[i].rgbBlue;
-		bmi->bmiColors[i].rgbReserved = pColorTable[i].rgbReserved;
-	}
-	
-	// Set size in header by size of header
-	bmi->bmiHeader.biSize = sizeof(bmi->bmiHeader);
-	
-	// We have 8 bit image
-	bmi->bmiHeader.biBitCount = 8;
-	bmi->bmiHeader.biSizeImage = 0;
-	bmi->bmiHeader.biPlanes = 1;
-	bmi->bmiHeader.biHeight = 64;
-	bmi->bmiHeader.biWidth = 64;
-	
-	// ... and 256 colors
-	//bmi->bmiColors = new RGBQUAD[256];
-		
-	bmi->bmiHeader.biClrUsed = 256;
-	//bmi.bmiColors = (LPVOID)pColorTable;
-	
+	//for (int i = 0; i < 256; i++)
+	//{
+	//	bmi->bmiColors[i].rgbRed =			pColorTable[i].rgbRed;
+	//	bmi->bmiColors[i].rgbGreen =		pColorTable[i].rgbGreen;
+	//	bmi->bmiColors[i].rgbBlue =			pColorTable[i].rgbBlue;
+	//	bmi->bmiColors[i].rgbReserved =		pColorTable[i].rgbReserved;
+	//}
+
 	// Get display context
 	if ((pSurface->GetDC(&hdc)) == DD_OK)
 	{
 		// Reading data from HBITMAP
 		// Copying to surface
 		int ret = GetDIBits(hdc, hBmp, 0, 64, NULL, bmi, DIB_PAL_COLORS);
+
+		pSurface->SetPalette(pDDPal);
+
 		pSurface->ReleaseDC(hdc);
 	}
 	
 	// Free memory
 	free(hBmp);
+	
 	
 	return (TRUE);
 }
