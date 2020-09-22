@@ -13,11 +13,11 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// Neutral (Default) resources
+// Neutral resources
 
-#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEUD)
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEU)
 #ifdef _WIN32
-LANGUAGE LANG_NEUTRAL, SUBLANG_DEFAULT
+LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 #pragma code_page(1251)
 #endif //_WIN32
 
@@ -29,7 +29,7 @@ LANGUAGE LANG_NEUTRAL, SUBLANG_DEFAULT
 IDB_BITMAP1             BITMAP  DISCARDABLE     "3dfx_voodoo.bmp"
 IDB_BITMAP2             BITMAP  DISCARDABLE     "ess1868f_Animated.bmp"
 IDB_BITMAP3             BITMAP  DISCARDABLE     "TVGA-9000C_2_coll.bmp"
-#endif    // Neutral (Default) resources
+#endif    // Neutral resources
 /////////////////////////////////////////////////////////////////////////////
 
 

@@ -89,6 +89,43 @@ public:
 
 SpriteCollection spriteCollection;
 
+//---------------------------------------------------------
+// Search last index of a character in the array of char
+int lastpos(char* text, char symbol)
+{
+	for (int i = strlen(text) - 1; i >= 0; i--)
+		if (text[i] == symbol)
+			return i;
+	return -1;
+}
+//---------------------------------------------------------
+// Cut of string
+char *substring(char *str, int index, int length)
+{
+	char *result = new char[255];
+	// For a clear result
+	result[0] = '\0';
+		
+	if (length < 0)
+		return result;
+	
+	if (index < 0)
+		return result;
+	
+	if (index + length > (int)strlen(str))
+		return result;
+	
+	int j = 0;
+	for (int i = index; i < index + length; i++)
+	{
+		result[j] = str[i];
+		j++;
+	}
+	result[j] = '\0';
+	
+	return result;
+}
+
 void Log(int v)
 {
 	HANDLE hFile = CreateFile("debug.log", GENERIC_WRITE,
@@ -198,12 +235,14 @@ BOOL InitDirectDraw (HWND hwnd)
 	HRESULT hRet;
 	
 	// Creating IDirectDraw interface
+	Log("DirectDrawCreate start\n");
 	hRet=DirectDrawCreate(NULL, &pDD, NULL);
 	if (hRet!=DD_OK)
 	{
 		ErrorHandle(hMainWnd, "DirectDrawCreate");
 		return (FALSE);
 	}
+	Log("DirectDrawCreate success\n");
 	
 	// Set exclusive fullscreen mode
 	hRet=pDD->SetCooperativeLevel(hMainWnd, DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN);
@@ -308,7 +347,7 @@ BOOL CreateSurfaces()
 	return (TRUE);
 }
 //---------------------------------------------------------
-// Creating of the palette from the resource
+// Creating of the palette from the palette file in resources
 //
 LPDIRECTDRAWPALETTE CreateDirectDrawPaletteFromResource(LPDIRECTDRAW pDD)
 {
@@ -320,7 +359,7 @@ LPDIRECTDRAWPALETTE CreateDirectDrawPaletteFromResource(LPDIRECTDRAW pDD)
 	PALETTEENTRY palEntries[256];
 	HRESULT hRet;
 	LPRGBQUAD pColorTable;
-	UINT uMemNeed = sizeof(RGBQUAD)*256;
+	UINT uMemNeed = sizeof(RGBQUAD) * 256;
 	int i = 0;
 
 	// Very hard to find how correctly to load binary resource!
@@ -378,9 +417,68 @@ LPDIRECTDRAWPALETTE CreateDirectDrawPaletteFromResource(LPDIRECTDRAW pDD)
 	return (pDirectDrawPal);
 }
 //---------------------------------------------------------
+// Creating of the palette from the BMP file in resources
+//
+LPDIRECTDRAWPALETTE CreateDirectDrawPaletteFromResource(
+	LPDIRECTDRAW pDD, const int resource)
+{
+	Log("CreatePaletteFromBMPResource"); Log("\n");
+
+	// Declaration of interfaces and structures 
+	// for working with palette
+	LPDIRECTDRAWPALETTE pDirectDrawPal;
+	PALETTEENTRY pe[256];
+	HRESULT hRet;
+	
+	RGBQUAD Palette[256];
+	BYTE *lpBMP;
+
+	// Very hard to find how correctly to load binary resource!
+	// Example here
+	HRSRC rc = NULL;
+	rc = FindResource(NULL, MAKEINTRESOURCE(resource), RT_BITMAP);
+	if (rc == NULL) return NULL;
+	HGLOBAL hgl = LoadResource(NULL, rc);
+	lpBMP = (BYTE*)LockResource(hgl);
+	memcpy(Palette, &lpBMP[sizeof(BITMAPINFOHEADER)], sizeof(Palette));
+	FreeResource(hgl);
+	
+	int i;
+	for (i = 0; i < 256; i++)
+    {
+        pe[i].peRed = Palette[i].rgbRed;
+        pe[i].peGreen = Palette[i].rgbGreen;
+        pe[i].peBlue = Palette[i].rgbBlue;
+    }
+
+	for (i = 0; i < 256; i++)
+	{
+		Log(i);
+		Log(" Palette R ");Log(Palette[i].rgbRed);
+		Log(" G ");Log(Palette[i].rgbGreen);
+		Log(" B ");Log(Palette[i].rgbBlue);
+		Log("\n");
+	}
+	
+	// Creating DirectDraw palette
+	hRet = pDD->CreatePalette(
+		//DDPCAPS_8BIT | DDPCAPS_ALLOW256,
+		DDPCAPS_8BIT,
+		pe,
+		&pDirectDrawPal,
+		NULL
+	);
+	if (hRet != DD_OK) pDirectDrawPal = NULL;
+	
+	// Free memory
+	free(Palette);
+	
+	return (pDirectDrawPal);
+}
+//---------------------------------------------------------
 // Creating of a palette from the BMP file
 //
-LPDIRECTDRAWPALETTE CreateDirectDrawPaletteFromFile(LPDIRECTDRAW pDD)
+LPDIRECTDRAWPALETTE CreateDirectDrawPaletteFromFile(LPDIRECTDRAW pDD, char *filename)
 {
 	Log("CreatePaletteFromFile"); Log("\n");
 
@@ -396,7 +494,7 @@ LPDIRECTDRAWPALETTE CreateDirectDrawPaletteFromFile(LPDIRECTDRAW pDD)
 	
 	// Opening graphics file containing palette
 	HANDLE hFile = CreateFile(
-		"C:\\Projects\\Flying_Cards_dx5_v3\\bitmaps\\ess1868f_animated.bmp",
+		filename,
 		GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
 	if (hFile == INVALID_HANDLE_VALUE)
 	{
@@ -410,8 +508,7 @@ LPDIRECTDRAWPALETTE CreateDirectDrawPaletteFromFile(LPDIRECTDRAW pDD)
 	// Setting file pointer to a start palette
 	SetFilePointer(
 		hFile,
-		sizeof (BITMAPFILEHEADER) + 
-		sizeof (BITMAPINFOHEADER),
+		sizeof (BITMAPFILEHEADER) + sizeof (BITMAPINFOHEADER),
 		NULL,
 		FILE_BEGIN
 	);
@@ -459,95 +556,7 @@ LPDIRECTDRAWPALETTE CreateDirectDrawPaletteFromFile(LPDIRECTDRAW pDD)
 	return (pDirectDrawPal);
 }
 
-//---------------------------------------------------------
-// Search last index of a character in the array of char
-int lastpos(char* text, char symbol)
-{
-	for (int i = strlen(text) - 1; i >= 0; i--)
-		if (text[i] == symbol)
-			return i;
-	return -1;
-}
-//---------------------------------------------------------
-// Cut of string
-char *substring(char *str, int index, int length)
-{
-	char *result = new char[255];
-	// For a clear result
-	result[0] = '\0';
-		
-	if (length < 0)
-		return result;
-	
-	if (index < 0)
-		return result;
-	
-	if (index + length > (int)strlen(str))
-		return result;
-	
-	int j = 0;
-	for (int i = index; i < index + length; i++)
-	{
-		result[j] = str[i];
-		j++;
-	}
-	result[j] = '\0';
-	
-	return result;
-}
-//---------------------------------------------------------
-// Preparing surfaces for displaying
-BOOL PrepareSurfaces()
-{
-	// Creating DirectDraw palette
-	pDDPal = CreateDirectDrawPaletteFromResource(pDD);
-	//pDDPal = CreateDirectDrawPaletteFromFile(pDD);
-	if (pDDPal == NULL)
-		return (FALSE);
-	
-	// Assignment of a palette to primary surface
-	pPrimarySurface->SetPalette(pDDPal);
-	
-	// Loading graphics data from the files to the offscreen surfaces
-	
-	//if (!LoadBMP(pPicFrame, pFileName))
-	//	return (FALSE);
-	
-	for (int i = 0; i < MAX_SPRITES; i++)
-	{
-		//char fullpath[MAX_PATH];
-		
-		// Get absolute path to the executable
-		//GetModuleFileName(NULL, fullpath, MAX_PATH);
-		
-		// Вычислить позицию последнего "\"
-		//int f = lastpos(fullpath, '\\');
-		
-		// Обрезать путь до текущего каталога
-		//char* fp = new char[255];
-		//fp = substring(fullpath, 0, f);
-		
-		// Прибавить к пути папку Bitmaps
-		//strcat(fp, "\\bitmaps\\");
-		
-		// Прибавить к пути название картинки
-		//strcat(fp, pFileNames[i]);
-		
-		//if (!LoadBMP(spriteCollection.sprites[i].pPicFrame, pFileNames[i]))
-		//{
-		//	ErrorHandle(hMainWnd, pFileNames[i]);
-		//	return (FALSE);
-		//}
-		
-		if (!LoadBMPFromResource(spriteCollection.sprites[i].pPicFrame,	101 + i))
-		{
-			ErrorHandle(hMainWnd, "Error loading from resource!");
-			return (FALSE);
-		}
-		
-	}
-	return (TRUE);
-}
+
 //---------------------------------------------------------
 // Load bitmap from BMP file
 //
@@ -606,23 +615,19 @@ BOOL LoadBMP(LPDIRECTDRAWSURFACE pSurface, char* filename)
 }
 //---------------------------------------------------------
 // Load bitmap from resource
-//
+// 
 BOOL LoadBMPFromResource(LPDIRECTDRAWSURFACE pSurface, int resource)
 {
+	HDC hdc;
+
+	// Loading bitmap
 	HBITMAP hBmp = LoadBitmap(NULL, MAKEINTRESOURCE(resource));
 	//Log("hBMP size"); Log(sizeof(hBmp)); Log("\n");
 
-	HDC hdc;
-	
 	// Necessary variables
-	//struct {
-	//	BITMAPINFOHEADER bmiHeader;
-	//	RGBQUAD bmiColor[256];
-	//} bmi;
-	//memset(&bmi, 0, sizeof(bmi));
 	
 	BITMAPINFO* bmi;
-	bmi = (LPBITMAPINFO) malloc(sizeof(BITMAPINFO) + sizeof(BITMAPINFOHEADER) + 256 * sizeof(RGBQUAD));
+	bmi = (LPBITMAPINFO) malloc(sizeof(BITMAPINFO) + 256 * sizeof(RGBQUAD));
 	// Set size in header by size of header
 	// We have 8 bit image
 	bmi->bmiHeader.biSize = sizeof(bmi->bmiHeader);
@@ -636,28 +641,6 @@ BOOL LoadBMPFromResource(LPDIRECTDRAWSURFACE pSurface, int resource)
 	//bmi->bmiHeader.biClrUsed = 256;
 	//bmi->bmiHeader.biClrImportant = 0;
 
-	// Loading palette data from resource
-	//HRSRC rc = NULL;
-	//rc = FindResource(NULL, MAKEINTRESOURCE(IDR_PALETTE1), RT_RCDATA);
-	//HGLOBAL hgl = LoadResource(NULL, rc);
-	//BYTE *paletteBytes = (BYTE*)LockResource(hgl); // Dont forget, it contains +24 bytes of header
-	//FreeResource(hgl);
-	
-	// Allocation memory for color table
-	//LPRGBQUAD pColorTable;
-	//pColorTable = (LPRGBQUAD) malloc (uMemNeed);
-	
-	// Copy palette data
-	//memcpy(pColorTable, paletteBytes + 24, uMemNeed);
-
-	//for (int i = 0; i < 256; i++)
-	//{
-	//	bmi->bmiColors[i].rgbRed =			pColorTable[i].rgbRed;
-	//	bmi->bmiColors[i].rgbGreen =		pColorTable[i].rgbGreen;
-	//	bmi->bmiColors[i].rgbBlue =			pColorTable[i].rgbBlue;
-	//	bmi->bmiColors[i].rgbReserved =		pColorTable[i].rgbReserved;
-	//}
-
 	// Get display context
 	if ((pSurface->GetDC(&hdc)) == DD_OK)
 	{
@@ -665,17 +648,141 @@ BOOL LoadBMPFromResource(LPDIRECTDRAWSURFACE pSurface, int resource)
 		// Copying to surface
 		int ret = GetDIBits(hdc, hBmp, 0, 64, NULL, bmi, DIB_PAL_COLORS);
 
-		pSurface->SetPalette(pDDPal);
+		//LPDIRECTDRAWPALETTE pDirectDrawPal = CreateDirectDrawPaletteFromResource(
+		//	pDD, IDB_BITMAP1);
+		
+		//pSurface->SetPalette(pDirectDrawPal);
+		//pSurface->SetPalette(pDDPal);
 
 		pSurface->ReleaseDC(hdc);
 	}
 	
 	// Free memory
-	free(hBmp);
-	
-	
+	//free(hBmp);
+	DeleteObject(hBmp);
+		
 	return (TRUE);
 }
+//---------------------------------------------------------
+// Load bitmap from resource
+// 
+BOOL LoadBMPFromResource_V2(LPDIRECTDRAWSURFACE pSurface, int resource)
+{
+	HRESULT             ddrval;
+    HRSRC               hBMP;
+    RGBQUAD             Palette[256];
+    PALETTEENTRY        pe[256];
+    DDSURFACEDESC       DDSDesc;
+    LPSTR               lpBits;
+    LPSTR               lpSrc;
+    BYTE                *lpBMP;
+    int                 i;
+
+    hBMP=FindResource(NULL,MAKEINTRESOURCE(resource),RT_BITMAP);    
+    if( hBMP == NULL )
+    {
+        return FALSE;
+    }
+
+    lpBMP=(BYTE *)LockResource(LoadResource(NULL, hBMP));
+    
+    memcpy(Palette,&lpBMP[sizeof(BITMAPINFOHEADER)],sizeof(Palette));
+
+    FreeResource(hBMP);
+
+    for(i=0;i<256;i++)
+    {
+        pe[i].peRed=Palette[i].rgbRed;
+        pe[i].peGreen=Palette[i].rgbGreen;
+        pe[i].peBlue=Palette[i].rgbBlue;
+    }   
+
+	LPDIRECTDRAWPALETTE lpDDPal = NULL;
+	if (lpDDPal == NULL) {
+
+		ddrval=pDD->CreatePalette(DDPCAPS_8BIT, pe, &lpDDPal, NULL);
+
+		if(ddrval!=DD_OK)
+		{
+			return FALSE;
+		}
+    }
+
+    //pSurface->SetPalette(pDDPal);
+	pSurface->SetPalette(lpDDPal);
+
+    DDSDesc.dwSize = sizeof(DDSDesc);
+	DDSDesc.lPitch = 64;
+    ddrval = pSurface->Lock(NULL, &DDSDesc, 0, NULL);
+    if(ddrval != DD_OK)
+    {
+        return FALSE;
+    }
+
+    lpBits = (LPSTR)DDSDesc.lpSurface;
+	int memneed = sizeof(BITMAPINFOHEADER) + sizeof(Palette) + (64*64);
+    lpSrc = (LPSTR)(&lpBMP[memneed]);
+	Log("Memory for sprite "); Log(memneed); Log(" allocated\n");
+	for (i = 0; i < 64; i++)
+    {
+        memcpy(lpBits, lpSrc, 64);
+        lpBits += DDSDesc.lPitch;
+        lpSrc -= 64;
+    }
+    pSurface->Unlock(NULL);
+
+    return TRUE;
+}
+//---------------------------------------------------------
+// Preparing surfaces for displaying
+BOOL PrepareSurfaces()
+{
+	// Creating DirectDraw palette
+	//pDDPal = CreateDirectDrawPaletteFromResource(pDD);
+	//pDDPal = CreateDirectDrawPaletteFromFile(pDD);
+	pDDPal = CreateDirectDrawPaletteFromResource(pDD, IDB_BITMAP1);
+	if (pDDPal == NULL) return (FALSE);
+	
+	// Assignment of a palette to primary surface
+	pPrimarySurface->SetPalette(pDDPal);
+	
+	// Loading graphics data from the files to the offscreen surfaces
+	for (int i = 0; i < MAX_SPRITES; i++)
+	{
+		//char fullpath[MAX_PATH];
+		
+		// Get absolute path to the executable
+		//GetModuleFileName(NULL, fullpath, MAX_PATH);
+		
+		// Вычислить позицию последнего "\"
+		//int f = lastpos(fullpath, '\\');
+		
+		// Обрезать путь до текущего каталога
+		//char* fp = new char[255];
+		//fp = substring(fullpath, 0, f);
+		
+		// Прибавить к пути папку Bitmaps
+		//strcat(fp, "\\bitmaps\\");
+		
+		// Прибавить к пути название картинки
+		//strcat(fp, pFileNames[i]);
+		
+		//if (!LoadBMP(spriteCollection.sprites[i].pPicFrame, pFileNames[i]))
+		//{
+		//	ErrorHandle(hMainWnd, pFileNames[i]);
+		//	return (FALSE);
+		//}
+		
+		if (!LoadBMPFromResource_V2(spriteCollection.sprites[i].pPicFrame,	101 + i))
+		{
+			ErrorHandle(hMainWnd, "Error loading from resource!");
+			return (FALSE);
+		}
+		
+	}
+	return (TRUE);
+}
+
 //---------------------------------------------------------
 //Check surfaces on lost
 //
