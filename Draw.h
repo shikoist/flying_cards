@@ -7,6 +7,7 @@
 #define MAX_HEIGHT 600
 #define COLOR_DEPTH 8
 #define TRASPARENT_COLOR 0xE3
+//#define TRASPARENT_COLOR 0xE1
 
 #define FRAME_HEIGHT 16
 #define FRAME_WIDTH 32

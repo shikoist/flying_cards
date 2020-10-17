@@ -24,9 +24,11 @@ LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
 //Характеристики таймера
 #define TIMER_ID	1
-#define TIMER_RATE	150
+#define TIMER_RATE	20 // moving
 #define TIMER2_ID	2
-#define TIMER2_RATE	150
+#define TIMER2_RATE	20 // animation
+#define TIMER3_ID	3
+#define TIMER3_RATE	5000 // back color change
 
 //HICON invisibleCursor;
 
@@ -131,14 +133,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	switch(msg)
 	{
-		HANDLE_MSG(hWnd,WM_CREATE,DX_OnCreate);
-		HANDLE_MSG(hWnd,WM_DESTROY,DX_OnDestroy);
-		HANDLE_MSG(hWnd,WM_TIMER,DX_OnTimer);
-		HANDLE_MSG(hWnd,WM_ACTIVATE,DX_OnActivate);
-		HANDLE_MSG(hWnd,WM_KEYDOWN,DX_OnKey);
-		HANDLE_MSG(hWnd,WM_MOUSEMOVE,DX_OnMouse);
+		HANDLE_MSG(hWnd, WM_CREATE, DX_OnCreate);
+		HANDLE_MSG(hWnd, WM_DESTROY, DX_OnDestroy);
+		HANDLE_MSG(hWnd, WM_TIMER, DX_OnTimer);
+		HANDLE_MSG(hWnd, WM_ACTIVATE, DX_OnActivate);
+		HANDLE_MSG(hWnd, WM_KEYDOWN, DX_OnKey);
+		HANDLE_MSG(hWnd, WM_MOUSEMOVE, DX_OnMouse);
 	default:
-		return DefWindowProc(hWnd,msg,wParam,lParam);
+		return DefWindowProc(hWnd, msg, wParam, lParam);
 	}
 }
 
@@ -148,6 +150,10 @@ BOOL DX_OnCreate(HWND hwnd, LPCREATESTRUCT lpCreateStruct)
 {
 //Установка таймера
 	if (!SetTimer(hwnd,TIMER_ID,TIMER_RATE,NULL))
+		return (FALSE);
+	if (!SetTimer(hwnd,TIMER2_ID,TIMER2_RATE,NULL))
+		return (FALSE);
+	if (!SetTimer(hwnd,TIMER3_ID,TIMER3_RATE,NULL))
 		return (FALSE);
 	return (TRUE);
 }
@@ -163,9 +169,18 @@ void DX_OnDestroy(HWND hwnd)
 //---------------------------------------------------------
 void DX_OnTimer(HWND hwnd, UINT id)
 {
-	if (bActive) {
-		NextTick();
-	}
+	if (id == TIMER_ID)
+		if (bActive) 
+			MoveSprites();
+		
+	// Moving code
+	if (id == TIMER2_ID)
+		if (bActive)
+			NextTick();
+	// 
+	if (id == TIMER3_ID)
+		if (bActive)
+			ChangeColor();
 }
 //---------------------------------------------------------
 

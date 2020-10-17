@@ -35,6 +35,17 @@ char* pFileNames[] =
 	"3dfx_voodoo.bmp"
 };
 
+int rPoses[] = {
+	 0, 0,31,15,
+	32, 0,63,15,
+	 0,15,31,31,
+	32,15,63,31,
+	 0,31,31,47,
+	32,31,63,47,
+	 0,47,31,63,
+	32,47,63,63
+};
+
 // Class for sprite
 class Sprite
 {
@@ -713,6 +724,9 @@ BOOL LoadBMPFromResource_V2(LPDIRECTDRAWSURFACE pSurface, int resource)
 
     DDSDesc.dwSize = sizeof(DDSDesc);
 	DDSDesc.lPitch = 64;
+	DDSDesc.dwHeight = 64;
+	DDSDesc.dwWidth = 64;
+	
     ddrval = pSurface->Lock(NULL, &DDSDesc, 0, NULL);
     if(ddrval != DD_OK)
     {
@@ -720,15 +734,17 @@ BOOL LoadBMPFromResource_V2(LPDIRECTDRAWSURFACE pSurface, int resource)
     }
 
     lpBits = (LPSTR)DDSDesc.lpSurface;
-	int memneed = sizeof(BITMAPINFOHEADER) + sizeof(Palette) + (64*64);
+	//lpBits = (LPSTR)pSurface;
+	unsigned int memneed = sizeof(BITMAPINFOHEADER) - 128 + sizeof(Palette) + (64*64);
     lpSrc = (LPSTR)(&lpBMP[memneed]);
 	Log("Memory for sprite "); Log(memneed); Log(" allocated\n");
 	for (i = 0; i < 64; i++)
     {
-        memcpy(lpBits, lpSrc, 64);
-        lpBits += DDSDesc.lPitch;
+		memcpy(lpBits, lpSrc, 64);
+        lpBits += 64;
         lpSrc -= 64;
     }
+
     pSurface->Unlock(NULL);
 
     return TRUE;
@@ -840,16 +856,125 @@ BOOL ClearSurface(LPDIRECTDRAWSURFACE pSurface)
 	return (TRUE);
 }
 //---------------------------------------------------------
+//---------------------------------------------------------
+//Fill surfaces by color
+//
+BOOL FillSurface(LPDIRECTDRAWSURFACE pSurface, int color)
+{
+	DDSURFACEDESC ddSurfaceDesc;
+	HRESULT hRet;
+	
+	ZeroMemory(&ddSurfaceDesc,sizeof(ddSurfaceDesc));
+	ddSurfaceDesc.dwSize=sizeof(ddSurfaceDesc);
+	
+	hRet=pSurface->Lock(NULL,&ddSurfaceDesc,
+		DDLOCK_SURFACEMEMORYPTR | DDLOCK_WAIT,NULL);
+	if(FAILED(hRet))
+	{
+		return (FALSE);
+	}
+	
+	//UINT surfaceWidth=ddSurfaceDesc.lPitch;
+	UINT surfaceWidth=ddSurfaceDesc.dwWidth;
+	UINT surfaceHeight=ddSurfaceDesc.dwHeight;
+	
+	char *buf=(char*)ddSurfaceDesc.lpSurface;
+	ZeroMemory(buf, surfaceWidth * surfaceHeight);
+	int i, j;
+	for (i=0;i<surfaceWidth*surfaceHeight;i++)
+		buf[i] = color;
+	pSurface->Unlock(NULL);
+	return (TRUE);
+}
+//---------------------------------------------------------
+
 //Output data to display
 //
+// 224 Palette R 255 G 0 B 0
+// 28 Palette R 0 G 255 B 0
+// 3 Palette R 0 G 0 B 255
+//2 Palette R 0 G 0 B 128
+//16 Palette R 0 G 128 B 0
+//128 Palette R 128 G 0 B 0
+//int backColors[] = {3, 28, 224, 0, 2, 16, 128};
+int backColors[] = {0, 2, 16, 128};
+int backColor = 3;
 void DrawFrame()
 {
+	
+
 	RECT rPic;
 	
 	// Prepare surfaces
 	PrepareFrame();
 	ClearSurface(pBackBuffer);
+	//FillSurface(pBackBuffer, backColor);
 	
+	//backColor++;
+	//if (backColor > 255) backColor = 0;
+
+	// Setting rectangles for copying data
+	int w = FRAME_WIDTH;
+	int h = FRAME_HEIGHT;
+	int i = 0;
+	for (i = 0; i < MAX_SPRITES; i++) {
+	
+		// f can be 0-7
+		int f = spriteCollection.sprites[i].currentFrame;
+		
+		// Select frame from picture
+		// BMP:
+		// 0 | 1
+		// —————
+		// 2 | 3
+		// —————
+		// 4 | 5
+		// —————
+		// 6 | 7
+		
+		//Left-top pos
+		int x1 = rPoses[f*4 + 0];
+		int y1 = rPoses[f*4 + 1];
+
+		//Right-bottom pos
+		int x2 = rPoses[f*4 + 2];
+		int y2 = rPoses[f*4 + 3];
+
+		SetRect(&rPic, x1, y1, x2, y2);
+		
+		// Copying data from offscreen surfaces to secondary buffer
+		pBackBuffer->BltFast(
+			spriteCollection.sprites[i].x,
+			spriteCollection.sprites[i].y,
+			spriteCollection.sprites[i].pPicFrame,
+			&rPic,
+			DDBLTFAST_SRCCOLORKEY | DDBLTFAST_WAIT
+		);
+		
+	}
+	
+	// Switching surfaces
+	pPrimarySurface->Flip(NULL, DDFLIP_WAIT);
+}
+
+void NextTick()
+{
+	for (int i = 0; i < MAX_SPRITES; i++)
+	{
+		spriteCollection.sprites[i].currentFrame++;
+		if (spriteCollection.sprites[i].currentFrame > 
+			spriteCollection.sprites[i].maxFrame)
+			spriteCollection.sprites[i].currentFrame = 0;
+	}
+}
+
+void ChangeColor()
+{
+	backColor = backColors[rand()%4];
+}
+
+void MoveSprites()
+{
 	// Moving sprites
 	for (int i = 0; i < MAX_SPRITES; i++)
 	{
@@ -885,49 +1010,5 @@ void DrawFrame()
 		
 		if (spriteCollection.sprites[i].y < 0)
 			spriteCollection.sprites[i].y = 0;
-	}
-	
-	// Setting rectangles for copying data
-	int w = FRAME_WIDTH;
-	int h = FRAME_HEIGHT;
-	for (i = 0; i < MAX_SPRITES; i++) {
-		// f can be 0-7
-		int f = spriteCollection.sprites[i].currentFrame;
-		
-		// Select frame from picture
-		// BMP:
-		// 0 | 1
-		// —————
-		// 2 | 3
-		// —————
-		// 4 | 5
-		// —————
-		// 6 | 7
-		
-		SetRect(&rPic, w*(f%2), h*(f/2), w*(f%2+1), h*(f/2+1));
-		
-		// Copying data from offscreen surfaces to secondary buffer
-		pBackBuffer->BltFast(
-			spriteCollection.sprites[i].x,
-			spriteCollection.sprites[i].y,
-			spriteCollection.sprites[i].pPicFrame,
-			&rPic,
-			DDBLTFAST_SRCCOLORKEY | DDBLTFAST_WAIT
-		);
-		
-	}
-	
-	// Switching surfaces
-	pPrimarySurface->Flip(NULL, DDFLIP_WAIT);
-}
-
-void NextTick()
-{
-	for (int i = 0; i < MAX_SPRITES; i++)
-	{
-		spriteCollection.sprites[i].currentFrame++;
-		if (spriteCollection.sprites[i].currentFrame > 
-			spriteCollection.sprites[i].maxFrame)
-			spriteCollection.sprites[i].currentFrame = 0;
 	}
 }
