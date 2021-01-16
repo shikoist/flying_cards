@@ -13,27 +13,6 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// Neutral resources
-
-#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEU)
-#ifdef _WIN32
-LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
-#pragma code_page(1251)
-#endif //_WIN32
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Bitmap
-//
-
-IDB_BITMAP1             BITMAP  DISCARDABLE     "3dfx_voodoo.bmp"
-IDB_BITMAP2             BITMAP  DISCARDABLE     "ess1868f_Animated.bmp"
-IDB_BITMAP3             BITMAP  DISCARDABLE     "TVGA-9000C_2_coll.bmp"
-#endif    // Neutral resources
-/////////////////////////////////////////////////////////////////////////////
-
-
-/////////////////////////////////////////////////////////////////////////////
 // Russian resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_RUS)
@@ -70,6 +49,16 @@ END
 
 /////////////////////////////////////////////////////////////////////////////
 //
+// Bitmap
+//
+
+IDB_BITMAP1             BITMAP  DISCARDABLE     "ess1868f_Animated.bmp"
+IDB_BITMAP2             BITMAP  DISCARDABLE     "3dfx_voodoo.bmp"
+IDB_BITMAP3             BITMAP  DISCARDABLE     "test.bmp"
+IDB_BITMAP4             BITMAP  DISCARDABLE     "TVGA-9000C_2_coll.bmp"
+
+/////////////////////////////////////////////////////////////////////////////
+//
 // Icon
 //
 
@@ -79,10 +68,10 @@ IDI_ICON1               ICON    DISCARDABLE     "icon1.ico"
 
 /////////////////////////////////////////////////////////////////////////////
 //
-// Data
+// PALETTE
 //
 
-IDR_PALETTE1            RCDATA  DISCARDABLE     "bitmap.pal"
+IDR_PALETTE1            PALETTE DISCARDABLE     "bitmap.pal"
 #endif    // Russian resources
 /////////////////////////////////////////////////////////////////////////////
 

@@ -15,11 +15,11 @@
 #include "resource.h"
 
 // Min and max speed
-#define MAX_SPEED 2
+#define MAX_SPEED 5
 #define MIN_SPEED 1
 
 // Max number of sprites
-#define MAX_SPRITES 3
+#define MAX_SPRITES 4
 
 static HWND hMainWnd;
 
@@ -32,18 +32,19 @@ char* pFileNames[] =
 {
 	"ess1868f_Animated.bmp",
 	"TVGA-9000C_2_coll.bmp",
-	"3dfx_voodoo.bmp"
+	"3dfx_voodoo.bmp",
+	"test.bmp"
 };
 
 int rPoses[] = {
-	 0, 0,31,15,
-	32, 0,63,15,
-	 0,15,31,31,
-	32,15,63,31,
-	 0,31,31,47,
-	32,31,63,47,
-	 0,47,31,63,
-	32,47,63,63
+	 0, 0,32,16,
+	32, 0,64,16,
+	 0,16,32,32,
+	32,16,64,32,
+	 0,32,32,48,
+	32,32,64,48,
+	 0,48,32,64,
+	32,48,64,64
 };
 
 // Class for sprite
@@ -386,7 +387,7 @@ LPDIRECTDRAWPALETTE CreateDirectDrawPaletteFromResource(LPDIRECTDRAW pDD)
 	
 	// Copy palette data
 	// Offset 24 bytes because palette saved as a file
-	memcpy(pColorTable, paletteBytes + 24, uMemNeed);
+	memcpy(pColorTable, paletteBytes + sizeof (BITMAPFILEHEADER) + sizeof (BITMAPINFOHEADER), uMemNeed);
 	
 	// Logging
 	//Log("pColorTable ");Log(sizeof(pColorTable));Log("\n");
@@ -734,14 +735,23 @@ BOOL LoadBMPFromResource_V2(LPDIRECTDRAWSURFACE pSurface, int resource)
     }
 
     lpBits = (LPSTR)DDSDesc.lpSurface;
-	//lpBits = (LPSTR)pSurface;
-	unsigned int memneed = sizeof(BITMAPINFOHEADER) - 128 + sizeof(Palette) + (64*64);
+	//unsigned int memneed = sizeof(BITMAPINFOHEADER) - 128 + sizeof(Palette) + (64*64);
+	unsigned int memneed = 
+		sizeof(BITMAPINFOHEADER)
+		+ sizeof(Palette)
+		- DDSDesc.dwWidth
+		+ (64 * 64);
+	
     lpSrc = (LPSTR)(&lpBMP[memneed]);
+	Log("sizeof(Palette) = "); Log(sizeof(Palette)); Log("\n");
+	Log("sizeof(BITMAPFILEHEADER) = "); Log(sizeof(BITMAPFILEHEADER)); Log("\n");
+	Log("sizeof(BITMAPINFOHEADER) = "); Log(sizeof(BITMAPINFOHEADER)); Log("\n");
+	Log("sizeof(BITMAPINFO) = "); Log(sizeof(BITMAPINFO)); Log("\n");
 	Log("Memory for sprite "); Log(memneed); Log(" allocated\n");
 	for (i = 0; i < 64; i++)
     {
 		memcpy(lpBits, lpSrc, 64);
-        lpBits += 64;
+        lpBits += DDSDesc.lPitch;
         lpSrc -= 64;
     }
 
@@ -783,17 +793,21 @@ BOOL PrepareSurfaces()
 		// Прибавить к пути название картинки
 		//strcat(fp, pFileNames[i]);
 		
-		//if (!LoadBMP(spriteCollection.sprites[i].pPicFrame, pFileNames[i]))
-		//{
-		//	ErrorHandle(hMainWnd, pFileNames[i]);
-		//	return (FALSE);
-		//}
+		/*
+		if (!LoadBMP(spriteCollection.sprites[i].pPicFrame, pFileNames[i]))
+		{
+			ErrorHandle(hMainWnd, pFileNames[i]);
+			return (FALSE);
+		}
+		*/
+		
 		
 		if (!LoadBMPFromResource_V2(spriteCollection.sprites[i].pPicFrame,	101 + i))
 		{
 			ErrorHandle(hMainWnd, "Error loading from resource!");
 			return (FALSE);
 		}
+		
 		
 	}
 	return (TRUE);

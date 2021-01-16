@@ -24,9 +24,9 @@ LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
 //Характеристики таймера
 #define TIMER_ID	1
-#define TIMER_RATE	20 // moving
+#define TIMER_RATE	1 // moving
 #define TIMER2_ID	2
-#define TIMER2_RATE	20 // animation
+#define TIMER2_RATE	1000 // animation
 #define TIMER3_ID	3
 #define TIMER3_RATE	5000 // back color change
 
@@ -163,17 +163,19 @@ void DX_OnDestroy(HWND hwnd)
 {
 	//Убрать после себя
 	KillTimer(hwnd,TIMER_ID);
+	KillTimer(hwnd,TIMER2_ID);
+	KillTimer(hwnd,TIMER3_ID);
 	RemoveDirectDraw();
 	PostQuitMessage(0);
 }
 //---------------------------------------------------------
 void DX_OnTimer(HWND hwnd, UINT id)
 {
+	// Moving code
 	if (id == TIMER_ID)
 		if (bActive) 
 			MoveSprites();
-		
-	// Moving code
+	
 	if (id == TIMER2_ID)
 		if (bActive)
 			NextTick();

@@ -145,6 +145,10 @@ SOURCE=.\script.rc
 # End Source File
 # Begin Source File
 
+SOURCE=.\test.bmp
+# End Source File
+# Begin Source File
+
 SOURCE=".\TVGA-9000C_2_coll.bmp"
 # End Source File
 # End Group
