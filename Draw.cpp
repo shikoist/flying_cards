@@ -21,6 +21,9 @@
 // Max number of sprites
 #define MAX_SPRITES 4
 
+//Use only in w95-98
+bool debugLog = false;
+
 static HWND hMainWnd;
 
 LPDIRECTDRAW pDD;
@@ -140,35 +143,41 @@ char *substring(char *str, int index, int length)
 
 void Log(int v)
 {
-	HANDLE hFile = CreateFile("debug.log", GENERIC_WRITE,
+	if (debugLog)
+	{
+		HANDLE hFile = CreateFile("debug.log", GENERIC_WRITE,
 		FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, NULL, NULL);
-	if (hFile == INVALID_HANDLE_VALUE)
-		return;
+		if (hFile == INVALID_HANDLE_VALUE)
+			return;
 
-	DWORD bytesWritten = 0;
+		DWORD bytesWritten = 0;
 
-	char n[100];
-	sprintf(n, "%d", v);
+		char n[100];
+		sprintf(n, "%d", v);
 
-	SetFilePointer(hFile, 0, 0, FILE_END);
-	WriteFile(hFile, n, strlen(n), &bytesWritten, 0);
-	
-	CloseHandle(hFile);
+		SetFilePointer(hFile, 0, 0, FILE_END);
+		WriteFile(hFile, n, strlen(n), &bytesWritten, 0);
+		
+		CloseHandle(hFile);
+	}
 }
 
 void Log(char* dbg)
 {
-	HANDLE hFile = CreateFile("debug.log", GENERIC_WRITE,
-		FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, NULL, NULL);
-	if (hFile == INVALID_HANDLE_VALUE)
-		return;
+	if (debugLog)
+	{
+		HANDLE hFile = CreateFile("debug.log", GENERIC_WRITE,
+			FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, NULL, NULL);
+		if (hFile == INVALID_HANDLE_VALUE)
+			return;
 
-	DWORD bytesWritten = 0;
+		DWORD bytesWritten = 0;
 
-	SetFilePointer(hFile, 0, 0, FILE_END);
-	WriteFile(hFile, dbg, strlen(dbg), &bytesWritten, 0);
-	
-	CloseHandle(hFile);
+		SetFilePointer(hFile, 0, 0, FILE_END);
+		WriteFile(hFile, dbg, strlen(dbg), &bytesWritten, 0);
+		
+		CloseHandle(hFile);
+	}
 }
 
 void ErrorHandle(HWND hwnd, LPCTSTR szError)
