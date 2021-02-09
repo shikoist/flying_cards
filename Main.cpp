@@ -26,7 +26,7 @@ LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 #define TIMER_ID	1
 #define TIMER_RATE	1 // moving
 #define TIMER2_ID	2
-#define TIMER2_RATE	1000 // animation
+#define TIMER2_RATE	64 // animation
 #define TIMER3_ID	3
 #define TIMER3_RATE	5000 // back color change
 
@@ -49,19 +49,25 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpszCmdLine, int 
 	//BYTE CursorMaskXOR[] = { 0x00 };
 	//invisibleCursor = CreateCursor(NULL, 0,0,1,1, CursorMaskAND, CursorMaskXOR);
 	
+	bool dropOut = true;
+
 	// Обработка аргументов командной строки
 	char par1[80];
 	if (strlen(lpszCmdLine) >= 2)
 	{
 		// Копируем два первых символа командной строки
-		strncpy(par1, lpszCmdLine, 2);
+		strncpy(par1, lpszCmdLine, 3);
 		
 		// Если программа запущена с этими параметрами, игнорировать
 		if (strcmp(par1,"/p") == 0 || strcmp(par1,"/P") == 0)
-			return (msg.wParam);
+			dropOut = true;
 		if (strcmp(par1,"/c") == 0 || strcmp(par1,"/C") == 0)
-			return (msg.wParam);
+			dropOut = true;
+		if (strcmp(par1, "/s") == 0 || strcmp(par1, "/S") == 0)
+			dropOut = false;
 	}
+	if (dropOut)
+		return (msg.wParam);
 
 	//Регистрация оконного класса
 	wndClass.cbSize       =sizeof(wndClass);
@@ -149,12 +155,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 BOOL DX_OnCreate(HWND hwnd, LPCREATESTRUCT lpCreateStruct)
 {
 //Установка таймера
-	if (!SetTimer(hwnd,TIMER_ID,TIMER_RATE,NULL))
-		return (FALSE);
+	//if (!SetTimer(hwnd,TIMER_ID,TIMER_RATE,NULL))
+	//	return (FALSE);
 	if (!SetTimer(hwnd,TIMER2_ID,TIMER2_RATE,NULL))
 		return (FALSE);
-	if (!SetTimer(hwnd,TIMER3_ID,TIMER3_RATE,NULL))
-		return (FALSE);
+	//if (!SetTimer(hwnd,TIMER3_ID,TIMER3_RATE,NULL))
+	//	return (FALSE);
 	return (TRUE);
 }
 
@@ -162,9 +168,9 @@ BOOL DX_OnCreate(HWND hwnd, LPCREATESTRUCT lpCreateStruct)
 void DX_OnDestroy(HWND hwnd)
 {
 	//Убрать после себя
-	KillTimer(hwnd,TIMER_ID);
+	//KillTimer(hwnd,TIMER_ID);
 	KillTimer(hwnd,TIMER2_ID);
-	KillTimer(hwnd,TIMER3_ID);
+	//KillTimer(hwnd,TIMER3_ID);
 	RemoveDirectDraw();
 	PostQuitMessage(0);
 }
@@ -172,23 +178,25 @@ void DX_OnDestroy(HWND hwnd)
 void DX_OnTimer(HWND hwnd, UINT id)
 {
 	// Moving code
-	if (id == TIMER_ID)
-		if (bActive) 
-			MoveSprites();
+	//if (id == TIMER_ID)
+		//if (bActive) 
+		//	MoveSprites();
 	
 	if (id == TIMER2_ID)
 		if (bActive)
 			NextTick();
 	// 
-	if (id == TIMER3_ID)
-		if (bActive)
-			ChangeColor();
+	//if (id == TIMER3_ID)
+	//	if (bActive)
+	//		ChangeColor();
 }
 //---------------------------------------------------------
 
 void DX_OnIdle(HWND hwnd)
 {
 	//Прорисовка кадра
+	MoveSprites();
+	//NextTick();
 	DrawFrame();
 }
 //---------------------------------------------------------

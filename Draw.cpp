@@ -912,7 +912,7 @@ BOOL FillSurface(LPDIRECTDRAWSURFACE pSurface, int color)
 //128 Palette R 128 G 0 B 0
 //int backColors[] = {3, 28, 224, 0, 2, 16, 128};
 int backColors[] = {0, 2, 16, 128};
-int backColor = 3;
+int backColor = 0;
 void DrawFrame()
 {
 	
@@ -922,7 +922,7 @@ void DrawFrame()
 	// Prepare surfaces
 	PrepareFrame();
 	ClearSurface(pBackBuffer);
-	//FillSurface(pBackBuffer, backColor);
+	FillSurface(pBackBuffer, backColor);
 	
 	//backColor++;
 	//if (backColor > 255) backColor = 0;
