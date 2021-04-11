@@ -4,7 +4,7 @@
 //------------------------------------------------------
 
 #define ClassName "DX_Window"
-#define AppName "DirectDraw Application"
+#define AppName "Flying Cards"
 
 BOOL InitDirectDraw (HWND hwnd);
 void RemoveDirectDraw (void);

@@ -131,6 +131,10 @@ SOURCE=.\icon1.ico
 # End Source File
 # Begin Source File
 
+SOURCE=.\labels.bmp
+# End Source File
+# Begin Source File
+
 SOURCE=.\script.rc
 
 !IF  "$(CFG)" == "draw - Win32 Release"

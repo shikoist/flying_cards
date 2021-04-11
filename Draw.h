@@ -3,8 +3,8 @@
 //  Описание:  Демонстрирует основы DirectDraw
 //------------------------------------------------------
 
-#define MAX_WIDTH 800
-#define MAX_HEIGHT 600
+#define MAX_WIDTH 640
+#define MAX_HEIGHT 480
 #define COLOR_DEPTH 8
 #define TRASPARENT_COLOR 0xE3
 //#define TRASPARENT_COLOR 0xE1

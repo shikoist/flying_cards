@@ -49,25 +49,26 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpszCmdLine, int 
 	//BYTE CursorMaskXOR[] = { 0x00 };
 	//invisibleCursor = CreateCursor(NULL, 0,0,1,1, CursorMaskAND, CursorMaskXOR);
 	
-	bool dropOut = true;
+	//bool dropOut = true;
+	//bool dropOut = false;
 
 	// Обработка аргументов командной строки
-	char par1[80];
-	if (strlen(lpszCmdLine) >= 2)
-	{
+	//char par1[80];
+	//if (strlen(lpszCmdLine) >= 2)
+	//{
 		// Копируем два первых символа командной строки
-		strncpy(par1, lpszCmdLine, 3);
+	//	strncpy(par1, lpszCmdLine, 3);
 		
 		// Если программа запущена с этими параметрами, игнорировать
-		if (strcmp(par1,"/p") == 0 || strcmp(par1,"/P") == 0)
-			dropOut = true;
-		if (strcmp(par1,"/c") == 0 || strcmp(par1,"/C") == 0)
-			dropOut = true;
-		if (strcmp(par1, "/s") == 0 || strcmp(par1, "/S") == 0)
-			dropOut = false;
-	}
-	if (dropOut)
-		return (msg.wParam);
+	//	if (strcmp(par1,"/p") == 0 || strcmp(par1,"/P") == 0)
+	//		dropOut = true;
+	//	if (strcmp(par1,"/c") == 0 || strcmp(par1,"/C") == 0)
+	//		dropOut = true;
+	//	if (strcmp(par1, "/s") == 0 || strcmp(par1, "/S") == 0)
+	//		dropOut = false;
+	//}
+	//if (dropOut)
+	//	return (msg.wParam);
 
 	//Регистрация оконного класса
 	wndClass.cbSize       =sizeof(wndClass);
@@ -203,7 +204,7 @@ void DX_OnIdle(HWND hwnd)
 void DX_OnKey(HWND hwnd, UINT vk, BOOL fDown, int cRepeat, UINT flags)
 {
 	//При нажатии пробела прекратить работу программы
-	//if (vk==VK_SPACE || vk==VK_ESCAPE)
+	if (vk==VK_SPACE || vk==VK_ESCAPE)
 		DestroyWindow(hwnd);
 }
 //---------------------------------------------------------

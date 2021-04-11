@@ -19,16 +19,26 @@
 #define MIN_SPEED 1
 
 // Max number of sprites
-#define MAX_SPRITES 4
+#define MAX_SPRITES 3
 
-//Use only in w95-98
+//103 debug picture
+//101 ess audiodrive 1869
+//102 3dfx voodoo
+//104 tvga 9000C
+int idsResourcesForSprites[MAX_SPRITES] =
+{ 101, 102, 104 };
+
+//Use only for debug log
 bool debugLog = false;
 
 static HWND hMainWnd;
 
 LPDIRECTDRAW pDD;
+
 LPDIRECTDRAWSURFACE pPrimarySurface;
 LPDIRECTDRAWSURFACE pBackBuffer;
+LPDIRECTDRAWSURFACE labelSurface;
+
 LPDIRECTDRAWPALETTE pDDPal;
 
 char* pFileNames[] = 
@@ -48,6 +58,13 @@ int rPoses[] = {
 	32,32,64,48,
 	 0,48,32,64,
 	32,48,64,64
+};
+
+int labelPoses[] = {
+	 0, 0,64,16,
+	 0,16,64,32,
+	 0,32,64,48,
+	 0,48,64,64,
 };
 
 // Class for sprite
@@ -90,7 +107,7 @@ class AnimatedSprite: public Sprite
 	{
 		framesHorizontal = 2;
 		framesVertical = 4;
-		currentFrame = 0;
+		currentFrame = rand()%8;
 		maxFrame = 7;
 		// 8 frames
 	}
@@ -334,6 +351,29 @@ BOOL CreateSurfaces()
 	if (hRet != DD_OK)
 		return (FALSE);
 	
+	// Setting structure with color keys
+	DDCOLORKEY ddColorKey;
+	ddColorKey.dwColorSpaceLowValue = TRASPARENT_COLOR;
+	ddColorKey.dwColorSpaceHighValue = TRASPARENT_COLOR;
+
+	//Create surface for labels
+	ZeroMemory(&ddSurfaceDesc, sizeof(ddSurfaceDesc));
+	ddSurfaceDesc.dwSize = sizeof(ddSurfaceDesc);
+	ddSurfaceDesc.dwFlags = 
+		DDSD_CAPS | 
+		DDSD_HEIGHT | 
+		DDSD_WIDTH;
+	ddSurfaceDesc.ddsCaps.dwCaps = 
+		DDSCAPS_OFFSCREENPLAIN;
+	ddSurfaceDesc.dwHeight = 64;
+	ddSurfaceDesc.dwWidth = 64;
+	hRet=pDD->CreateSurface(
+		&ddSurfaceDesc,
+		&labelSurface,
+		NULL);
+	if (hRet != DD_OK) return (FALSE);
+	labelSurface->SetColorKey(DDCKEY_SRCBLT, &ddColorKey);
+
 	// Creating offscreen surfaces for sprites
 	for (int i = 0; i < MAX_SPRITES; i++)
 	{
@@ -354,17 +394,11 @@ BOOL CreateSurfaces()
 		if (hRet != DD_OK) return (FALSE);
 	}
 	
-	// Setting structure with color keys
-	DDCOLORKEY ddColorKey;
-	ddColorKey.dwColorSpaceLowValue = TRASPARENT_COLOR;
-	ddColorKey.dwColorSpaceHighValue = TRASPARENT_COLOR;
-	
 	// Setting color keys for all surfaces
 	for (i = 0; i < MAX_SPRITES; i++)
 		spriteCollection.sprites[i].pPicFrame->SetColorKey(
 			DDCKEY_SRCBLT, 
-			&ddColorKey
-		);
+			&ddColorKey);
 	return (TRUE);
 }
 //---------------------------------------------------------
@@ -811,12 +845,20 @@ BOOL PrepareSurfaces()
 		*/
 		
 		
-		if (!LoadBMPFromResource_V2(spriteCollection.sprites[i].pPicFrame,	101 + i))
+		//if (!LoadBMPFromResource_V2(spriteCollection.sprites[i].pPicFrame,	101 + i))
+		if (!LoadBMPFromResource_V2(spriteCollection.sprites[i].pPicFrame,
+			idsResourcesForSprites[i]))
 		{
 			ErrorHandle(hMainWnd, "Error loading from resource!");
 			return (FALSE);
 		}
 		
+		//Loading label bitmap
+		if (!LoadBMPFromResource_V2(labelSurface,IDB_BITMAP5))
+		{
+			ErrorHandle(hMainWnd, "Error loading from resource!");
+			return (FALSE);
+		}
 		
 	}
 	return (TRUE);
@@ -843,11 +885,17 @@ void PrepareFrame()
 				spriteCollection.sprites[i].pPicFrame->Restore();
 				//LoadBMP(spriteCollection.sprites[i].pPicFrame,
 				//	pFileNames[i]);
-				LoadBMPFromResource(
+				LoadBMPFromResource_V2(
 					spriteCollection.sprites[i].pPicFrame,
 					101 + i
 				);
 			}
+		}
+
+		if (labelSurface->IsLost())
+		{
+			labelSurface->Restore();
+			LoadBMPFromResource_V2(labelSurface, IDB_BITMAP5);
 		}
 	}
 }
@@ -873,7 +921,7 @@ BOOL ClearSurface(LPDIRECTDRAWSURFACE pSurface)
 	UINT surfaceWidth=ddSurfaceDesc.dwWidth;
 	UINT surfaceHeight=ddSurfaceDesc.dwHeight;
 	
-	char *buf=(char*)ddSurfaceDesc.lpSurface;
+	char *buf = (char*)ddSurfaceDesc.lpSurface;
 	ZeroMemory(buf, surfaceWidth * surfaceHeight);
 	pSurface->Unlock(NULL);
 	return (TRUE);
@@ -900,12 +948,14 @@ BOOL FillSurface(LPDIRECTDRAWSURFACE pSurface, int color)
 	//UINT surfaceWidth=ddSurfaceDesc.lPitch;
 	UINT surfaceWidth=ddSurfaceDesc.dwWidth;
 	UINT surfaceHeight=ddSurfaceDesc.dwHeight;
-	
+	int surf2 = surfaceWidth * surfaceHeight;
 	char *buf=(char*)ddSurfaceDesc.lpSurface;
-	ZeroMemory(buf, surfaceWidth * surfaceHeight);
-	int i, j;
-	for (i=0;i<surfaceWidth*surfaceHeight;i++)
+	ZeroMemory(buf, surf2);
+	int i;
+	for (i = 0; i < surf2; i++)
+	{
 		buf[i] = color;
+	}
 	pSurface->Unlock(NULL);
 	return (TRUE);
 }
@@ -916,17 +966,19 @@ BOOL FillSurface(LPDIRECTDRAWSURFACE pSurface, int color)
 // 224 Palette R 255 G 0 B 0
 // 28 Palette R 0 G 255 B 0
 // 3 Palette R 0 G 0 B 255
-//2 Palette R 0 G 0 B 128
-//16 Palette R 0 G 128 B 0
-//128 Palette R 128 G 0 B 0
+// 2 Palette R 0 G 0 B 128
+// 16 Palette R 0 G 128 B 0
+// 128 Palette R 128 G 0 B 0
+// 146 Palette R 128 G 128 B 128
+// 73 Palette R 64 G 64 B 64
 //int backColors[] = {3, 28, 224, 0, 2, 16, 128};
 int backColors[] = {0, 2, 16, 128};
-int backColor = 0;
+int backColor = 0
+;
 void DrawFrame()
 {
-	
-
 	RECT rPic;
+	RECT labelRect;
 	
 	// Prepare surfaces
 	PrepareFrame();
@@ -974,6 +1026,40 @@ void DrawFrame()
 			DDBLTFAST_SRCCOLORKEY | DDBLTFAST_WAIT
 		);
 		
+		//Draw labels
+		//Left-top pos
+		if (idsResourcesForSprites[i] == 101)
+			f = 1; // 0 1 2
+		if (idsResourcesForSprites[i] == 102)
+			f = 0; // 0 1 2
+		if (idsResourcesForSprites[i] == 104)
+			f = 2; // 0 1 2
+		
+		//0 3dfx Voodoo
+		//1 ESS AudioDrive 1869
+		//2 TVGA 9000C
+//101 ess audiodrive 1869
+//102 3dfx voodoo
+//104 tvga 9000C
+//int idsResourcesForSprites[MAX_SPRITES] = { 101, 102, 104, 101, 102, 104, 101, 102, 104, 101 };
+
+		x1 = labelPoses[f*4 + 0];
+		y1 = labelPoses[f*4 + 1];
+
+		//Right-bottom pos
+		x2 = labelPoses[f*4 + 2];
+		y2 = labelPoses[f*4 + 3];
+
+		SetRect(&labelRect, x1, y1, x2, y2);
+
+		pBackBuffer->BltFast(
+			spriteCollection.sprites[i].x - 16,
+			spriteCollection.sprites[i].y - 16,
+			labelSurface,
+			&labelRect,
+			DDBLTFAST_SRCCOLORKEY | DDBLTFAST_WAIT
+		);
+
 	}
 	
 	// Switching surfaces
@@ -996,42 +1082,71 @@ void ChangeColor()
 	backColor = backColors[rand()%4];
 }
 
+void InverseMoveX(int i)
+{
+	int r = rand()%MAX_SPEED + MIN_SPEED;
+	if (spriteCollection.sprites[i].x1 > 0)
+		spriteCollection.sprites[i].x1 = -r;
+	else
+		spriteCollection.sprites[i].x1 = r;
+}
+
+void InverseMoveY(int i)
+{
+	int r = rand()%MAX_SPEED + MIN_SPEED;
+	if (spriteCollection.sprites[i].y1 > 0)
+		spriteCollection.sprites[i].y1 = -r;
+	else
+		spriteCollection.sprites[i].y1 = r;
+}
+
+// Moving sprites
 void MoveSprites()
 {
-	// Moving sprites
+	// 0 is the zero point for sprite
+	// 1 is the zero point for label
+	//xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+	//x           screen 640x480           x
+	//x    1...........................    x
+	//x    .        label 64x16       .    x
+	//x    ......0.....................    x
+	//x    | 16 |. sprite 32x16 .| 16 |    x
+	//x    |    |................|    |    x
+	//x                                    x
+	//xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+	int borderLeft = 16;
+	int borderRight = MAX_WIDTH - 48;
+	int borderBottom = 16;
+	int borderTop = MAX_HEIGHT - 16;
+
 	for (int i = 0; i < MAX_SPRITES; i++)
 	{
+		//Increase coordinates by move values
 		spriteCollection.sprites[i].x += spriteCollection.sprites[i].x1;
 		spriteCollection.sprites[i].y += spriteCollection.sprites[i].y1;
 		
-		if (spriteCollection.sprites[i].x > MAX_WIDTH - FRAME_WIDTH || 
-			spriteCollection.sprites[i].x < 0)
+		if (spriteCollection.sprites[i].x > borderRight || 
+			spriteCollection.sprites[i].x <= borderLeft)
 		{
-			int r = rand()%MAX_SPEED + MIN_SPEED;
-			if (spriteCollection.sprites[i].x1 > 0)
-				spriteCollection.sprites[i].x1 = -r;
-			else
-				spriteCollection.sprites[i].x1 = r;
+			InverseMoveX(i);
 		}
-		if (spriteCollection.sprites[i].x > MAX_WIDTH - FRAME_WIDTH)
-			spriteCollection.sprites[i].x = MAX_WIDTH - FRAME_WIDTH;
+		if (spriteCollection.sprites[i].x > borderRight)
+			spriteCollection.sprites[i].x = borderRight;
 		
-		if (spriteCollection.sprites[i].x < 0)
-			spriteCollection.sprites[i].x = 0;
+		if (spriteCollection.sprites[i].x <= borderLeft)
+			spriteCollection.sprites[i].x = borderLeft;
 		
-		if (spriteCollection.sprites[i].y > MAX_HEIGHT - FRAME_HEIGHT || 
-			spriteCollection.sprites[i].y < 0)
+		if (spriteCollection.sprites[i].y > borderTop || 
+			spriteCollection.sprites[i].y <= borderBottom)
 		{
-			int r = rand()%MAX_SPEED + MIN_SPEED;
-			if (spriteCollection.sprites[i].y1 > 0)
-				spriteCollection.sprites[i].y1 = -r;
-			else
-				spriteCollection.sprites[i].y1 = r;
+			InverseMoveY(i);
 		}
-		if (spriteCollection.sprites[i].y > MAX_HEIGHT - FRAME_HEIGHT)
-			spriteCollection.sprites[i].y = MAX_HEIGHT - FRAME_HEIGHT;
+
+		if (spriteCollection.sprites[i].y > borderTop)
+			spriteCollection.sprites[i].y = borderTop;
 		
-		if (spriteCollection.sprites[i].y < 0)
-			spriteCollection.sprites[i].y = 0;
+		if (spriteCollection.sprites[i].y <= borderBottom)
+			spriteCollection.sprites[i].y = borderBottom;
 	}
 }
