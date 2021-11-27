@@ -1,5 +1,35 @@
+// Defines
+
 #define STRICT
 #define WIN32_LEAN_AND_MEAN
+
+#define TRASPARENT_COLOR 0xE3
+
+#define FRAME_HEIGHT 16
+#define FRAME_WIDTH 32
+
+#define ClassName "DX_Window"
+#define AppName "Flying Cards"
+
+//Характеристики таймера
+//#define TIMER_ID	1
+//#define TIMER_RATE	1 // moving
+#define TIMER2_ID	2
+#define TIMER2_RATE	64 // animation
+//#define TIMER3_ID	3
+//#define TIMER3_RATE	5000 // back color change
+#define TIMERFPS_ID	4
+#define TIMERFPS_RATE	1000 // fps timer
+
+// Min and max speed
+#define MAX_SPEED 2
+#define MIN_SPEED 1
+
+// Max number of sprites
+#define MAX_SPRITES 3
+
+//-------------------------------------------------------------------
+// Includes
 
 #include <windows.h>
 #include <windowsx.h>
@@ -11,8 +41,10 @@
 
 #include "resource.h"
 
-#define ClassName "DX_Window"
-#define AppName "Flying Cards"
+
+
+//----------------------------------------------------------------------
+//Prototypes
 
 BOOL InitDirectDraw (HWND hwnd, int width, int height, int depth);
 void RemoveDirectDraw (void);
@@ -36,15 +68,24 @@ void DX_OnIdle(HWND hwnd);
 //Оконная процедура
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
-//Характеристики таймера
-//#define TIMER_ID	1
-//#define TIMER_RATE	1 // moving
-#define TIMER2_ID	2
-#define TIMER2_RATE	64 // animation
-//#define TIMER3_ID	3
-//#define TIMER3_RATE	5000 // back color change
-
 //HICON invisibleCursor;
+
+BOOL CreateSurfaces();
+BOOL PrepareSurfaces();
+BOOL ClearSurface(LPDIRECTDRAWSURFACE pSurface);
+BOOL LoadBMP(LPDIRECTDRAWSURFACE pSurface, char* filename);
+BOOL LoadBMPFromResource(LPDIRECTDRAWSURFACE pSurface, int resource);
+void ErrorHandle(HWND hwnd, LPCTSTR szError);
+void DrawNumber(int n, int x, int y);
+
+//--------------------------------------------------------------------
+// Global variables
+
+bool info = false;
+
+int frame_counter = 0;
+int fpsCollector;
+int fps;
 
 //Флаг активности нашего приложения
 BOOL	bActive;
@@ -56,13 +97,6 @@ int mouseCheck = 0;
 //int ddWidth = 800; // Direct Draw width init
 //int ddHeight = 600; // Direct Draw height init
 //int ddDepth = 8; // Direct Draw bits depth init
-
-// Min and max speed
-#define MAX_SPEED 2
-#define MIN_SPEED 1
-
-// Max number of sprites
-#define MAX_SPRITES 3
 
 //103 debug picture
 //101 ess audiodrive 1869
@@ -114,6 +148,10 @@ int labelPoses[] = {
 	 0,32,64,48,
 	 0,48,64,64,
 };
+
+
+//--------------------------------------------------------------------
+// Main function
 
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpszCmdLine, int nCmdShow)
 {
@@ -238,6 +276,8 @@ BOOL DX_OnCreate(HWND hwnd, LPCREATESTRUCT lpCreateStruct)
 		return (FALSE);
 	//if (!SetTimer(hwnd,TIMER3_ID,TIMER3_RATE,NULL))
 	//	return (FALSE);
+	if (!SetTimer(hwnd,TIMERFPS_ID,TIMERFPS_RATE,NULL))
+		return (FALSE);
 	return (TRUE);
 }
 
@@ -248,6 +288,7 @@ void DX_OnDestroy(HWND hwnd)
 	//KillTimer(hwnd,TIMER_ID);
 	KillTimer(hwnd,TIMER2_ID);
 	//KillTimer(hwnd,TIMER3_ID);
+	KillTimer(hwnd,TIMERFPS_ID);
 	RemoveDirectDraw();
 	PostQuitMessage(0);
 }
@@ -269,6 +310,12 @@ void DX_OnTimer(HWND hwnd, UINT id)
 	//if (id == TIMER3_ID)
 	//	if (bActive)
 	//		ChangeColor();
+	
+	if (id == TIMERFPS_ID)
+	{
+		fps = fpsCollector;
+		fpsCollector = 0;
+	}
 }
 //---------------------------------------------------------
 
@@ -286,7 +333,9 @@ void DX_OnKey(HWND hwnd, UINT vk, BOOL fDown, int cRepeat, UINT flags)
 	if (vk==VK_SPACE || vk==VK_ESCAPE)
 		DestroyWindow(hwnd);
 	if (vk==0x42) // If press button B, change background
+	{
 		ChangeBackColor();
+	}
 	if (vk==0x31) // If press 1, 320 200 8
 	{
 		ddWidth = 320;
@@ -404,17 +453,6 @@ void DX_OnActivate(HWND hwnd, UINT state, HWND hwndActDeact, BOOL fMinimized)
 //-------------------------------------------------------------
 
 
-#define TRASPARENT_COLOR 0xE3
-
-#define FRAME_HEIGHT 16
-#define FRAME_WIDTH 32
-
-BOOL CreateSurfaces();
-BOOL PrepareSurfaces();
-BOOL ClearSurface(LPDIRECTDRAWSURFACE pSurface);
-BOOL LoadBMP(LPDIRECTDRAWSURFACE pSurface, char* filename);
-BOOL LoadBMPFromResource(LPDIRECTDRAWSURFACE pSurface, int resource);
-void ErrorHandle(HWND hwnd, LPCTSTR szError);
 
 
 
@@ -1412,16 +1450,24 @@ void ChangeBackColor()
 {
 	backColor++;
 	if (backColor > 7) backColor = 0;
+
+	if (backColor == 0)
+		info = false;
+	else
+		info = true;
 }
 
 void DrawFrame()
 {
+	frame_counter++;
+	fpsCollector++;
+
 	RECT rPic;
 	RECT labelRect;
 	
 	// Prepare surfaces
 	PrepareFrame();
-	ClearSurface(pBackBuffer);
+	//ClearSurface(pBackBuffer);
 	FillSurface(pBackBuffer, backColor);
 	
 
@@ -1498,22 +1544,65 @@ void DrawFrame()
 			DDBLTFAST_SRCCOLORKEY | DDBLTFAST_WAIT
 		);
 
+		if (info)
+		{
+			// Draw FPS
+			DrawNumber(fps, ddWidth - 8 * 8, ddHeight - 12 * 4);
 
-		// Write resolution in right bottom corner
+			// How many frames drawn
+			DrawNumber(frame_counter, ddWidth - 8 * 8, ddHeight - 12 * 3);
+
+			// Write resolution in right bottom corner
+			DrawNumber(ddWidth, ddWidth - 8 * 8, ddHeight - 12 * 2);
+			DrawNumber(ddHeight, ddWidth - 4 * 8, ddHeight - 12 * 2);
+		}
+		
+	}
+	
+	// Switching surfaces
+	pPrimarySurface->Flip(NULL, DDFLIP_WAIT);
+}
+
+void DrawNumber(int n, int x3, int y3)
+{
+	int nRect[] = {
+		0, 0, 7, 12, //0
+		7, 0, 14, 12, //1
+		14, 0, 21, 12, //2
+		21, 0, 28, 12, //3
+		28, 0, 35, 12, //4
+		0, 11, 7, 24, //5
+		7, 11, 14, 24, //6
+		14, 11, 21, 24, //7
+		21, 11, 28, 24, //8
+		28, 11, 35, 24 //9
+	};
+
+	char text[8];
+	sprintf(text, "%d", n);
+
+	for (int i = 0; i < 8; i++)
+	{
+		//char '0' equal 48
+		int c = (int)text[i]-48;
 
 		RECT numberRect;
-		SetRect(&numberRect, 0, 0, 64, 64);
-		pBackBuffer->BltFast(
-			ddWidth - 64,
-			ddHeight - 64,
+		SetRect(
+			&numberRect,
+			nRect[c*4],
+			nRect[c*4+1],
+			nRect[c*4+2],
+			nRect[c*4+3]
+		); // Select number
+	
+		pBackBuffer->BltFast( // Where to draw
+			x3 + i * 8,
+			y3,
 			numbersSurface,
 			&numberRect,
 			DDBLTFAST_SRCCOLORKEY | DDBLTFAST_WAIT
 		);
 	}
-	
-	// Switching surfaces
-	pPrimarySurface->Flip(NULL, DDFLIP_WAIT);
 }
 
 void NextTick()
