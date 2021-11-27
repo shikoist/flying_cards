@@ -15,7 +15,7 @@
 #include "resource.h"
 
 // Min and max speed
-#define MAX_SPEED 5
+#define MAX_SPEED 2
 #define MIN_SPEED 1
 
 // Max number of sprites
