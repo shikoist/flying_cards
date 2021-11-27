@@ -91,24 +91,12 @@ LINK32=link.exe
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
-SOURCE=.\DRAW.CPP
-# End Source File
-# Begin Source File
-
 SOURCE=.\MAIN.CPP
 # End Source File
 # End Group
 # Begin Group "Header Files"
 
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
-# Begin Source File
-
-SOURCE=.\draw.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\MAIN.H
-# End Source File
 # Begin Source File
 
 SOURCE=.\resource.h
@@ -120,6 +108,10 @@ SOURCE=.\resource.h
 # Begin Source File
 
 SOURCE=.\3dfx_voodoo.bmp
+# End Source File
+# Begin Source File
+
+SOURCE=.\bitmap6.bmp
 # End Source File
 # Begin Source File
 

@@ -57,6 +57,7 @@ IDB_BITMAP2             BITMAP  DISCARDABLE     "3dfx_voodoo.bmp"
 IDB_BITMAP3             BITMAP  DISCARDABLE     "test.bmp"
 IDB_BITMAP4             BITMAP  DISCARDABLE     "TVGA-9000C_2_coll.bmp"
 IDB_BITMAP5             BITMAP  DISCARDABLE     "labels.bmp"
+IDB_BITMAP6             BITMAP  DISCARDABLE     "bitmap6.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //
