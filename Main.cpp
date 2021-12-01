@@ -41,6 +41,146 @@
 
 #include "resource.h"
 
+//-----------------------------------------------------------------------
+//Classes
+// Class for sprite
+
+
+int ddWidth = 800; // Direct Draw width init
+int ddHeight = 600; // Direct Draw height init
+int ddDepth = 8; // Direct Draw bits depth init
+
+class Sprite
+{
+	public:
+	LPDIRECTDRAWSURFACE pPicFrame; // Поверхность DirectDraw
+	int x; // Start coordinates
+	int y; //
+	int x1; // Speed at axe X
+	int y1; // Speed at axe Y
+	int w; // Width of full picture, not a frame
+	int h; // Height of full picture
+	
+	int xOld;
+	int yOld;
+
+	int xOld2;
+	int yOld2;
+
+	Sprite()
+	{
+		
+
+		// Start position on a screen
+		x = rand()%ddWidth - FRAME_WIDTH;
+		y = rand()%ddHeight - FRAME_HEIGHT;
+		
+		// Start speeds
+		x1 = 1;
+		y1 = 1;
+		
+		// Size of a picture
+		w = 64;
+		h = 64;
+	}
+
+	void Restart()
+	{
+		x = rand()%ddWidth - FRAME_WIDTH;
+		y = rand()%ddHeight - FRAME_HEIGHT;
+	}
+
+	void InverseMoveX()
+	{
+		int r = rand()%MAX_SPEED + MIN_SPEED;
+		if (x1 > 0)
+			x1 = -r;
+		else
+			x1 = r;
+	}
+
+	void InverseMoveY()
+	{
+		int r = rand()%MAX_SPEED + MIN_SPEED;
+		if (y1 > 0)
+			y1 = -r;
+		else
+			y1 = r;
+	}
+
+	void Move()
+	{
+		// 0 is the zero point for sprite
+		// 1 is the zero point for label
+		//xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+		//x           screen 640x480           x
+		//x    1...........................    x
+		//x    .        label 64x16       .    x
+		//x    ......0.....................    x
+		//x    | 16 |. sprite 32x16 .| 16 |    x
+		//x    |    |................|    |    x
+		//x                                    x
+		//xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+		int borderLeft = 16;
+		int borderRight = ddWidth - 48;
+		int borderBottom = 16;
+		int borderTop = ddHeight - 16;
+
+		xOld = x;
+		yOld = y;
+
+		//Increase coordinates by move values
+		x += x1;
+		y += y1;
+		
+		if (x > borderRight || x <= borderLeft)
+			InverseMoveX();
+		
+		if (x > borderRight)
+			x = borderRight;
+		
+		if (x <= borderLeft)
+			x = borderLeft;
+		
+		if (y > borderTop || 
+			y <= borderBottom)
+			InverseMoveY();
+
+		if (y > borderTop)
+			y = borderTop;
+		
+		if (y <= borderBottom)
+			y = borderBottom;
+	}
+
+};
+
+class AnimatedSprite: public Sprite
+{
+	public:
+	int framesHorizontal;
+	int framesVertical;
+	int currentFrame;
+	int maxFrame;
+	
+	AnimatedSprite()
+	{
+		framesHorizontal = 2;
+		framesVertical = 4;
+		currentFrame = rand()%8;
+		maxFrame = 7;
+		// 8 frames
+	}
+};
+
+class SpriteCollection
+{
+public:
+	AnimatedSprite sprites[MAX_SPRITES];
+};
+
+SpriteCollection spriteCollection;
 
 
 //----------------------------------------------------------------------
@@ -55,6 +195,7 @@ void MoveSprites(void);
 void ChangeColor(void);
 void ChangeBackColor(void);
 void ReInitDirectDraw(int w, int h, int d);
+BOOL FillSurface(LPDIRECTDRAWSURFACE pSurface, int color);
 
 //Обработчики сообщений Windows
 BOOL DX_OnCreate(HWND hwnd, LPCREATESTRUCT lpCreateStruct);
@@ -77,6 +218,7 @@ BOOL LoadBMP(LPDIRECTDRAWSURFACE pSurface, char* filename);
 BOOL LoadBMPFromResource(LPDIRECTDRAWSURFACE pSurface, int resource);
 void ErrorHandle(HWND hwnd, LPCTSTR szError);
 void DrawNumber(int n, int x, int y);
+void MoveSprite(Sprite sprite);
 
 //--------------------------------------------------------------------
 // Global variables
@@ -108,9 +250,7 @@ int idsResourcesForSprites[MAX_SPRITES] =
 //Use only for debug log
 bool debugLog = false;
 
-int ddWidth = 800; // Direct Draw width init
-int ddHeight = 600; // Direct Draw height init
-int ddDepth = 8; // Direct Draw bits depth init
+
 
 static HWND hMainWnd;
 
@@ -118,6 +258,7 @@ LPDIRECTDRAW pDD;
 
 LPDIRECTDRAWSURFACE pPrimarySurface;
 LPDIRECTDRAWSURFACE pBackBuffer;
+LPDIRECTDRAWSURFACE pBackground;
 LPDIRECTDRAWSURFACE labelSurface;
 LPDIRECTDRAWSURFACE numbersSurface;
 
@@ -149,7 +290,18 @@ int labelPoses[] = {
 	 0,48,64,64,
 };
 
-
+//
+// 224 Palette R 255 G 0 B 0
+// 28 Palette R 0 G 255 B 0
+// 3 Palette R 0 G 0 B 255
+// 2 Palette R 0 G 0 B 128
+// 16 Palette R 0 G 128 B 0
+// 128 Palette R 128 G 0 B 0
+// 146 Palette R 128 G 128 B 128
+// 73 Palette R 64 G 64 B 64
+//int backColors[] = {3, 28, 224, 0, 2, 16, 128};
+int backColors[] = {0, 128, 16, 2, 224, 28, 3, 128};
+int backColor = 0;
 //--------------------------------------------------------------------
 // Main function
 
@@ -322,7 +474,7 @@ void DX_OnTimer(HWND hwnd, UINT id)
 void DX_OnIdle(HWND hwnd)
 {
 	//Прорисовка кадра
-	MoveSprites();
+	//MoveSprites();
 	
 	DrawFrame();
 }
@@ -458,59 +610,7 @@ void DX_OnActivate(HWND hwnd, UINT state, HWND hwndActDeact, BOOL fMinimized)
 
 
 
-// Class for sprite
-class Sprite
-{
-	public:
-	LPDIRECTDRAWSURFACE pPicFrame; // Поверхность DirectDraw
-	int x; // Start coordinates
-	int y; //
-	int x1; // Speed at axe X
-	int y1; // Speed at axe Y
-	int w; // Width of full picture, not a frame
-	int h; // Height of full picture
-	
-	Sprite()
-	{
-		// Start position on a screen
-		x = rand()%ddWidth - FRAME_WIDTH;
-		y = rand()%ddHeight - FRAME_HEIGHT;
-		
-		// Start speeds
-		x1 = 1;
-		y1 = 1;
-		
-		// Size of a picture
-		w = 64;
-		h = 64;
-	}
-};
 
-class AnimatedSprite: public Sprite
-{
-	public:
-	int framesHorizontal;
-	int framesVertical;
-	int currentFrame;
-	int maxFrame;
-	
-	AnimatedSprite()
-	{
-		framesHorizontal = 2;
-		framesVertical = 4;
-		currentFrame = rand()%8;
-		maxFrame = 7;
-		// 8 frames
-	}
-};
-
-class SpriteCollection
-{
-public:
-	AnimatedSprite sprites[MAX_SPRITES];
-};
-
-SpriteCollection spriteCollection;
 
 
 
@@ -627,6 +727,15 @@ void RemoveDirectDraw()
 			pPrimarySurface = NULL;
 		}
 
+		// Check background surface
+		if (pBackground!=NULL)
+		{
+			// Releasing of primary surface
+			pBackground->Release();
+			pBackground = NULL;
+		}
+
+
 		// Remove label surface
 		if (labelSurface!=NULL)
 		{
@@ -674,6 +783,7 @@ BOOL InitDirectDraw (HWND hwnd, int width, int height, int depth)
 	// NULL all interfaces
 	pPrimarySurface = NULL;
 	pBackBuffer = NULL;
+	//pBackground = NULL;
 	//labelSurface=NULL;
 	//numbersSurface = NULL;
 
@@ -729,6 +839,17 @@ BOOL InitDirectDraw (HWND hwnd, int width, int height, int depth)
 		return (FALSE);
 	}
 	
+	FillSurface(pBackground, backColor);
+	FillSurface(pPrimarySurface, backColor);
+	FillSurface(pBackBuffer, backColor);
+
+	for (i = 0; i < MAX_SPRITES; i++)
+	{
+		// Damn && link to object
+		Sprite& sprite = spriteCollection.sprites[i];
+		sprite.Restart();
+	}
+
 	return (TRUE);
 }
 //---------------------------------------------------------
@@ -773,7 +894,7 @@ BOOL CreateSurfaces()
 	ddColorKey.dwColorSpaceLowValue = TRASPARENT_COLOR;
 	ddColorKey.dwColorSpaceHighValue = TRASPARENT_COLOR;
 
-	//Create surface for labels
+	//Create surface for background
 	ZeroMemory(&ddSurfaceDesc, sizeof(ddSurfaceDesc));
 	ddSurfaceDesc.dwSize = sizeof(ddSurfaceDesc);
 	ddSurfaceDesc.dwFlags = 
@@ -782,14 +903,15 @@ BOOL CreateSurfaces()
 		DDSD_WIDTH;
 	ddSurfaceDesc.ddsCaps.dwCaps = 
 		DDSCAPS_OFFSCREENPLAIN;
-	ddSurfaceDesc.dwHeight = 64;
-	ddSurfaceDesc.dwWidth = 64;
+	ddSurfaceDesc.dwHeight = ddHeight;
+	ddSurfaceDesc.dwWidth = ddWidth;
 	hRet=pDD->CreateSurface(
 		&ddSurfaceDesc,
-		&labelSurface,
+		&pBackground,
 		NULL);
 	if (hRet != DD_OK) return (FALSE);
-	labelSurface->SetColorKey(DDCKEY_SRCBLT, &ddColorKey);
+	//pBackground->SetColorKey(DDCKEY_SRCBLT, &ddColorKey);
+	//pBackground->SetPalette(pDDPal);
 
 //Create surface for numbers
 	ZeroMemory(&ddSurfaceDesc, sizeof(ddSurfaceDesc));
@@ -828,6 +950,24 @@ BOOL CreateSurfaces()
 			NULL);
 		if (hRet != DD_OK) return (FALSE);
 	}
+
+		//Create labels surface
+	ZeroMemory(&ddSurfaceDesc, sizeof(ddSurfaceDesc));
+	ddSurfaceDesc.dwSize = sizeof(ddSurfaceDesc);
+	ddSurfaceDesc.dwFlags = 
+		DDSD_CAPS | 
+		DDSD_HEIGHT | 
+		DDSD_WIDTH;
+	ddSurfaceDesc.ddsCaps.dwCaps = 
+		DDSCAPS_OFFSCREENPLAIN;
+	ddSurfaceDesc.dwHeight = 64;
+	ddSurfaceDesc.dwWidth = 64;
+	hRet=pDD->CreateSurface(
+		&ddSurfaceDesc,
+		&labelSurface,
+		NULL);
+	if (hRet != DD_OK) return (FALSE);
+	labelSurface->SetColorKey(DDCKEY_SRCBLT, &ddColorKey);
 	
 	// Setting color keys for all surfaces
 	for (i = 0; i < MAX_SPRITES; i++)
@@ -1287,7 +1427,7 @@ BOOL PrepareSurfaces()
 			ErrorHandle(hMainWnd, "Error loading from resource!");
 			return (FALSE);
 		}
-		
+
 		//Loading label bitmap
 		if (!LoadBMPFromResource_V2(labelSurface,IDB_BITMAP5))
 		{
@@ -1301,7 +1441,6 @@ BOOL PrepareSurfaces()
 			ErrorHandle(hMainWnd, "Error loading from resource!");
 			return (FALSE);
 		}
-		
 	}
 	return (TRUE);
 }
@@ -1317,6 +1456,7 @@ void PrepareFrame()
 		//Restore primary surface and back buffer
 		pPrimarySurface->Restore();
 		pBackBuffer->Restore();
+		pBackground->Restore();
 		
 		for (int i = 0; i < MAX_SPRITES; i++)
 		{
@@ -1376,18 +1516,7 @@ BOOL ClearSurface(LPDIRECTDRAWSURFACE pSurface)
 }
 //---------------------------------------------------------
 //Output data to display
-//
-// 224 Palette R 255 G 0 B 0
-// 28 Palette R 0 G 255 B 0
-// 3 Palette R 0 G 0 B 255
-// 2 Palette R 0 G 0 B 128
-// 16 Palette R 0 G 128 B 0
-// 128 Palette R 128 G 0 B 0
-// 146 Palette R 128 G 128 B 128
-// 73 Palette R 64 G 64 B 64
-//int backColors[] = {3, 28, 224, 0, 2, 16, 128};
-int backColors[] = {0, 128, 16, 2, 224, 28, 3, 128};
-int backColor = 0;
+
 //---------------------------------------------------------
 //Fill surfaces by color
 //
@@ -1409,10 +1538,10 @@ BOOL FillSurface(LPDIRECTDRAWSURFACE pSurface, int color)
 	UINT surfaceWidth=ddSurfaceDesc.lPitch;
 	//UINT surfaceWidth=ddSurfaceDesc.dwWidth;
 	UINT surfaceHeight=ddSurfaceDesc.dwHeight;
-	int surf2 = surfaceWidth * surfaceHeight;
+	unsigned int surf2 = surfaceWidth * surfaceHeight;
 	char *buf=(char*)ddSurfaceDesc.lpSurface;
 	ZeroMemory(buf, surf2);
-	int i;
+	unsigned int i;
 	for (i = 0; i < surf2; i++)
 	{
 		buf[i] = backColors[color];
@@ -1423,21 +1552,25 @@ BOOL FillSurface(LPDIRECTDRAWSURFACE pSurface, int color)
 				i%surfaceWidth==surfaceWidth-1|| //Right
 				i<surfaceWidth|| //Top
 				i>surfaceWidth*surfaceHeight-surfaceWidth) //Bottom
-					buf[i]=255;
+					buf[i]=(char)255;
 		}
 		else if (color == 7)
 		{
 			buf[i]=0;
 			if (i%2==0)
-				buf[i]=146;
+				buf[i]=(char)146;
 			//Borders
 			if (i%surfaceWidth==0|| //Left
 				i%surfaceWidth==surfaceWidth-1|| //Right
 				i<surfaceWidth|| //Top
 				i>surfaceWidth*surfaceHeight-surfaceWidth) //Bottom
-					buf[i]=255;
+					buf[i]=(char)255;
 		}
-		
+		else if (color == 0)
+		{
+			buf[i]=0;
+			
+		}
 	}
 	pSurface->Unlock(NULL);
 	return (TRUE);
@@ -1455,6 +1588,10 @@ void ChangeBackColor()
 		info = false;
 	else
 		info = true;
+
+	FillSurface(pBackground, backColor);
+	FillSurface(pPrimarySurface, backColor);
+	FillSurface(pBackBuffer, backColor);
 }
 
 void DrawFrame()
@@ -1466,18 +1603,43 @@ void DrawFrame()
 	RECT labelRect;
 	
 	// Prepare surfaces
-	PrepareFrame();
+	//PrepareFrame();
 	//ClearSurface(pBackBuffer);
-	FillSurface(pBackBuffer, backColor);
+	//FillSurface(pBackBuffer, backColor);
 	
 
+	//RECT rClear;
+	//SetRect(&rClear,0,0,ddWidth,ddHeight);
+	//pBackBuffer->BltFast(0,0,pBackground,&rClear,	
+	//	DDBLTFAST_NOCOLORKEY | DDBLTFAST_WAIT);
+
+	//MoveSprites();
 
 	// Setting rectangles for copying data
 	int w = FRAME_WIDTH;
 	int h = FRAME_HEIGHT;
 	int i = 0;
-	for (i = 0; i < MAX_SPRITES; i++) {
-	
+	for (i = 0; i < MAX_SPRITES; i++)
+	{
+		// Damn && link to object
+		Sprite& sprite = spriteCollection.sprites[i];
+
+		RECT rClear;
+		SetRect(&rClear,
+			sprite.xOld-16,
+			sprite.yOld-16,
+			sprite.xOld+48,
+			sprite.yOld+16);
+		pBackBuffer->BltFast(
+			sprite.xOld-16,
+			sprite.yOld-16,
+			pBackground,
+			&rClear,	
+			DDBLTFAST_NOCOLORKEY | DDBLTFAST_WAIT);
+
+
+		sprite.Move();
+
 		// f can be 0-7
 		int f = spriteCollection.sprites[i].currentFrame;
 		
@@ -1501,6 +1663,9 @@ void DrawFrame()
 
 		SetRect(&rPic, x1, y1, x2, y2);
 		
+
+
+
 		// Copying data from offscreen surfaces to secondary buffer
 		pBackBuffer->BltFast(
 			spriteCollection.sprites[i].x,
@@ -1536,6 +1701,10 @@ void DrawFrame()
 
 		SetRect(&labelRect, x1, y1, x2, y2);
 
+
+
+
+		// Copy label to backbuffer
 		pBackBuffer->BltFast(
 			spriteCollection.sprites[i].x - 16,
 			spriteCollection.sprites[i].y - 16,
@@ -1583,6 +1752,22 @@ void DrawNumber(int n, int x3, int y3)
 
 	for (int i = 0; i < 8; i++)
 	{
+		// Clear
+		RECT cRect;
+		SetRect(
+			&cRect,
+			x3 + i * 8,
+			y3,
+			x3 + i * 8 + 8,
+			y3 + 12);
+		pBackBuffer->BltFast( // Where to draw
+			x3 + i * 8,
+			y3,
+			pBackground,
+			&cRect,
+			DDBLTFAST_NOCOLORKEY | DDBLTFAST_WAIT
+		);
+
 		//char '0' equal 48
 		int c = (int)text[i]-48;
 
@@ -1595,6 +1780,9 @@ void DrawNumber(int n, int x3, int y3)
 			nRect[c*4+3]
 		); // Select number
 	
+		
+
+		// Copy number
 		pBackBuffer->BltFast( // Where to draw
 			x3 + i * 8,
 			y3,
@@ -1639,6 +1827,24 @@ void InverseMoveY(int i)
 		spriteCollection.sprites[i].y1 = r;
 }
 
+void InverseMoveX(Sprite sprite)
+{
+	int r = rand()%MAX_SPEED + MIN_SPEED;
+	if (sprite.x1 > 0)
+		sprite.x1 = -r;
+	else
+		sprite.x1 = r;
+}
+
+void InverseMoveY(Sprite sprite)
+{
+	int r = rand()%MAX_SPEED + MIN_SPEED;
+	if (sprite.y1 > 0)
+		sprite.y1 = -r;
+	else
+		sprite.y1 = r;
+}
+
 // Moving sprites
 void MoveSprites()
 {
@@ -1661,6 +1867,9 @@ void MoveSprites()
 
 	for (int i = 0; i < MAX_SPRITES; i++)
 	{
+		spriteCollection.sprites[i].xOld = spriteCollection.sprites[i].x;
+		spriteCollection.sprites[i].yOld = spriteCollection.sprites[i].y;
+
 		//Increase coordinates by move values
 		spriteCollection.sprites[i].x += spriteCollection.sprites[i].x1;
 		spriteCollection.sprites[i].y += spriteCollection.sprites[i].y1;
@@ -1688,5 +1897,53 @@ void MoveSprites()
 		if (spriteCollection.sprites[i].y <= borderBottom)
 			spriteCollection.sprites[i].y = borderBottom;
 	}
+}
+
+// Moving sprites
+void MoveSprite(Sprite sprite)
+{
+	// 0 is the zero point for sprite
+	// 1 is the zero point for label
+	//xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+	//x           screen 640x480           x
+	//x    1...........................    x
+	//x    .        label 64x16       .    x
+	//x    ......0.....................    x
+	//x    | 16 |. sprite 32x16 .| 16 |    x
+	//x    |    |................|    |    x
+	//x                                    x
+	//xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+	int borderLeft = 16;
+	int borderRight = ddWidth - 48;
+	int borderBottom = 16;
+	int borderTop = ddHeight - 16;
+
+	sprite.xOld = sprite.x;
+	sprite.yOld = sprite.y;
+
+	//Increase coordinates by move values
+	sprite.x += sprite.x1;
+	sprite.y += sprite.y1;
+	
+	if (sprite.x > borderRight || sprite.x <= borderLeft)
+		InverseMoveX(sprite);
+	
+	if (sprite.x > borderRight)
+		sprite.x = borderRight;
+	
+	if (sprite.x <= borderLeft)
+		sprite.x = borderLeft;
+	
+	if (sprite.y > borderTop || 
+		sprite.y <= borderBottom)
+		InverseMoveY(sprite);
+
+	if (sprite.y > borderTop)
+		sprite.y = borderTop;
+	
+	if (sprite.y <= borderBottom)
+		sprite.y = borderBottom;
+
 }
 
