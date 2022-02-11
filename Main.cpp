@@ -661,6 +661,7 @@ char *substring(char *str, int index, int length)
 
 void Log(int v)
 {
+#ifdef _DEBUG
 	if (debugLog)
 	{
 		HANDLE hFile = CreateFile("debug.log", GENERIC_WRITE,
@@ -678,6 +679,7 @@ void Log(int v)
 		
 		CloseHandle(hFile);
 	}
+#endif
 }
 
 void Log(char* dbg)
