@@ -217,7 +217,7 @@ BOOL ClearSurface(LPDIRECTDRAWSURFACE pSurface);
 BOOL LoadBMP(LPDIRECTDRAWSURFACE pSurface, char* filename);
 BOOL LoadBMPFromResource(LPDIRECTDRAWSURFACE pSurface, int resource);
 void ErrorHandle(HWND hwnd, LPCTSTR szError);
-void DrawNumber(int n, int x, int y);
+void DrawNumber(int n, int x3, int y3);
 void MoveSprite(Sprite sprite);
 
 //--------------------------------------------------------------------
@@ -248,9 +248,7 @@ int idsResourcesForSprites[MAX_SPRITES] =
 { 101, 102, 104 };
 
 //Use only for debug log
-bool debugLog = false;
-
-
+bool debugLog = true;
 
 static HWND hMainWnd;
 
@@ -369,6 +367,8 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpszCmdLine, int 
 	// Скрываем курсор
 	ShowCursor(FALSE);
 
+	DeleteFile("debug.log");
+
 	ShowWindow(hWnd,nCmdShow);
 	UpdateWindow(hWnd);
 
@@ -419,6 +419,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 		/* Обработчики сообщений */
 //---------------------------------------------------------
+
 BOOL DX_OnCreate(HWND hwnd, LPCREATESTRUCT lpCreateStruct)
 {
 //Установка таймера
@@ -681,6 +682,7 @@ void Log(int v)
 
 void Log(char* dbg)
 {
+#ifdef _DEBUG
 	if (debugLog)
 	{
 		HANDLE hFile = CreateFile("debug.log", GENERIC_WRITE,
@@ -695,6 +697,7 @@ void Log(char* dbg)
 		
 		CloseHandle(hFile);
 	}
+#endif
 }
 
 void ErrorHandle(HWND hwnd, LPCTSTR szError)
@@ -783,9 +786,9 @@ BOOL InitDirectDraw (HWND hwnd, int width, int height, int depth)
 	// NULL all interfaces
 	pPrimarySurface = NULL;
 	pBackBuffer = NULL;
-	//pBackground = NULL;
-	//labelSurface=NULL;
-	//numbersSurface = NULL;
+	pBackground = NULL;
+	labelSurface = NULL;
+	numbersSurface = NULL;
 
 	pDDPal = NULL;
 	
@@ -816,6 +819,7 @@ BOOL InitDirectDraw (HWND hwnd, int width, int height, int depth)
 		ErrorHandle(hMainWnd,"SetCooperativeLevel");
 		return (FALSE);
 	}
+	Log("SetCooperativeLevel success\n");
 	
 	// Set display mode
 	hRet=pDD->SetDisplayMode(width, height, depth);
@@ -839,16 +843,16 @@ BOOL InitDirectDraw (HWND hwnd, int width, int height, int depth)
 		return (FALSE);
 	}
 	
-	FillSurface(pBackground, backColor);
-	FillSurface(pPrimarySurface, backColor);
-	FillSurface(pBackBuffer, backColor);
-
 	for (i = 0; i < MAX_SPRITES; i++)
 	{
 		// Damn && link to object
 		Sprite& sprite = spriteCollection.sprites[i];
 		sprite.Restart();
 	}
+
+	FillSurface(pBackground, backColor);
+	FillSurface(pPrimarySurface, backColor);
+	FillSurface(pBackBuffer, backColor);
 
 	return (TRUE);
 }
@@ -1065,13 +1069,22 @@ LPDIRECTDRAWPALETTE CreateDirectDrawPaletteFromResource(
 
 	// Very hard to find how correctly to load binary resource!
 	// Example here
+	
 	HRSRC rc = NULL;
 	rc = FindResource(NULL, MAKEINTRESOURCE(resource), RT_BITMAP);
-	if (rc == NULL) return NULL;
+	if (rc == NULL)
+	{
+		Log("CreatePalette FindResource error\n");
+		return NULL;
+	}
+	
+	Log("CreatePalette FindResource success\n");
+
 	HGLOBAL hgl = LoadResource(NULL, rc);
 	lpBMP = (BYTE*)LockResource(hgl);
 	memcpy(Palette, &lpBMP[sizeof(BITMAPINFOHEADER)], sizeof(Palette));
-	FreeResource(hgl);
+	
+	Log("CreatePalette LoadResource success\n");
 	
 	int i;
 	for (i = 0; i < 256; i++)
@@ -1081,14 +1094,14 @@ LPDIRECTDRAWPALETTE CreateDirectDrawPaletteFromResource(
         pe[i].peBlue = Palette[i].rgbBlue;
     }
 
-	for (i = 0; i < 256; i++)
-	{
-		Log(i);
-		Log(" Palette R ");Log(Palette[i].rgbRed);
-		Log(" G ");Log(Palette[i].rgbGreen);
-		Log(" B ");Log(Palette[i].rgbBlue);
-		Log("\n");
-	}
+	//for (i = 0; i < 256; i++)
+	//{
+	//	Log(i);
+	//	Log(" Palette R ");Log(Palette[i].rgbRed);
+	//	Log(" G ");Log(Palette[i].rgbGreen);
+	//	Log(" B ");Log(Palette[i].rgbBlue);
+	//	Log("\n");
+	//}
 	
 	// Creating DirectDraw palette
 	hRet = pDD->CreatePalette(
@@ -1098,11 +1111,31 @@ LPDIRECTDRAWPALETTE CreateDirectDrawPaletteFromResource(
 		&pDirectDrawPal,
 		NULL
 	);
-	if (hRet != DD_OK) pDirectDrawPal = NULL;
+
+	
+
+	if (hRet != DD_OK)
+	{
+		pDirectDrawPal = NULL;
+		ErrorHandle(hMainWnd, "CreatePalette error");
+		Log("CreatePalette CreatePalette error\n");
+		return NULL;
+	}
+	
+
+	Log("CreatePalette CreatePalette success\n");
+
 	
 	// Free memory
-	free(Palette);
-	
+	FreeResource(hgl);
+
+	Log("FreeResource(hgl); success\n");
+
+	// Why this collapses to heap damage?
+	//free(Palette);
+
+	Log("CreatePaletteFromBMPResource end\n");
+
 	return (pDirectDrawPal);
 }
 //---------------------------------------------------------
@@ -1619,6 +1652,8 @@ void DrawFrame()
 	int w = FRAME_WIDTH;
 	int h = FRAME_HEIGHT;
 	int i = 0;
+
+	// Clear previous draws
 	for (i = 0; i < MAX_SPRITES; i++)
 	{
 		// Damn && link to object
@@ -1636,8 +1671,13 @@ void DrawFrame()
 			pBackground,
 			&rClear,	
 			DDBLTFAST_NOCOLORKEY | DDBLTFAST_WAIT);
+	}
 
-
+	for (i = 0; i < MAX_SPRITES; i++)
+	{
+		// Damn && link to object
+		Sprite& sprite = spriteCollection.sprites[i];
+		
 		sprite.Move();
 
 		// f can be 0-7
@@ -1687,10 +1727,10 @@ void DrawFrame()
 		//0 3dfx Voodoo
 		//1 ESS AudioDrive 1869
 		//2 TVGA 9000C
-//101 ess audiodrive 1869
-//102 3dfx voodoo
-//104 tvga 9000C
-//int idsResourcesForSprites[MAX_SPRITES] = { 101, 102, 104, 101, 102, 104, 101, 102, 104, 101 };
+		//101 ess audiodrive 1869
+		//102 3dfx voodoo
+		//104 tvga 9000C
+		//int idsResourcesForSprites[MAX_SPRITES] = { 101, 102, 104, 101, 102, 104, 101, 102, 104, 101 };
 
 		x1 = labelPoses[f*4 + 0];
 		y1 = labelPoses[f*4 + 1];
@@ -1713,19 +1753,21 @@ void DrawFrame()
 			DDBLTFAST_SRCCOLORKEY | DDBLTFAST_WAIT
 		);
 
-		if (info)
-		{
-			// Draw FPS
-			DrawNumber(fps, ddWidth - 8 * 8, ddHeight - 12 * 4);
-
-			// How many frames drawn
-			DrawNumber(frame_counter, ddWidth - 8 * 8, ddHeight - 12 * 3);
-
-			// Write resolution in right bottom corner
-			DrawNumber(ddWidth, ddWidth - 8 * 8, ddHeight - 12 * 2);
-			DrawNumber(ddHeight, ddWidth - 4 * 8, ddHeight - 12 * 2);
-		}
 		
+		
+	}
+
+	if (info)
+	{
+		// Draw FPS
+		DrawNumber(fps, ddWidth - 9 * 8, ddHeight - 12 * 4);
+
+		// How many frames drawn
+		DrawNumber(frame_counter, ddWidth - 9 * 8, ddHeight - 12 * 3);
+
+		// Write resolution in right bottom corner
+		DrawNumber(ddWidth, ddWidth - 9 * 8, ddHeight - 12 * 2);
+		DrawNumber(ddHeight, ddWidth - 5 * 8, ddHeight - 12 * 2);
 	}
 	
 	// Switching surfaces
